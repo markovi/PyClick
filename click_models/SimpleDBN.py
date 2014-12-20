@@ -56,7 +56,7 @@ class SimpleDBN(ClickModel):
         log_click_probs = []
         exam_full = 1
 
-        for rank, click in enumerate(session.clicks):
+        for rank, click in enumerate(session.get_clicks()):
             params = self.get_params(self.params, session, rank)
             param_values = self.get_param_values(params)
             attract = param_values[SimpleDBNAttract.NAME]
