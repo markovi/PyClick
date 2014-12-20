@@ -4,6 +4,7 @@
 # Full copyright notice can be found in LICENSE.
 #
 import sys
+from click_models.SimpleDBN import SimpleDBN
 from session.Session import *
 
 __author__ = 'Ilya Markov'
@@ -44,3 +45,8 @@ if __name__ == '__main__':
     """
     train_sessions = parse_wsdm_sessions("data/trainSample")
     test_sessions = parse_wsdm_sessions("data/testSample")
+
+    #TODO: fix initialization
+    SDBN = SimpleDBN(SimpleDBN.get_prior_values())
+    SDBN.train(train_sessions)
+    print SDBN
