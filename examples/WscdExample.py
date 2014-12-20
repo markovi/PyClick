@@ -36,7 +36,8 @@ def parse_wsdm_sessions(sessions_filename):
                 session.add_web_result(web_result)
 
             sessions.append(session)
-            return sessions
+
+    return sessions
 
 
 if __name__ == '__main__':
