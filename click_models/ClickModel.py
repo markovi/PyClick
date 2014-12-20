@@ -358,7 +358,7 @@ class RelevanceWrapper(ClickModelParamWrapper):
 
     def get_param(self, session, rank, **kwargs):
         query = session.query
-        url = session.urls[rank]
+        url = session.web_results[rank].object
         return self.params[query][url]
 
     def get_params_from_JSON(self, json_str):
