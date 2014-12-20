@@ -23,6 +23,16 @@ class Session(object):
     def add_vertical_block(self, vertical_block):
         self.vertical_blocks.append(vertical_block)
 
+    def get_clicks(self):
+        clicks = [result.click for result in self.web_results]
+        return clicks
+
+    def get_last_click_rank(self):
+        clicks = self.get_clicks()
+        click_ranks = [r for r, click in enumerate(clicks) if click]
+        last_click_rank = click_ranks[-1] if len(click_ranks) else len(clicks) - 1
+        return last_click_rank
+
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
 
