@@ -51,3 +51,5 @@ if __name__ == '__main__':
     SDBN = SimpleDBN(SimpleDBN.get_prior_values())
     SDBN.train(train_sessions)
     print SDBN
+
+    print SDBN.test(test_sessions)
