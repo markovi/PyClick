@@ -32,15 +32,13 @@ class SimpleDCM(ClickModel):
         self.params = self.init_params(self.init_param_values)
 
         for session in sessions:
-            last_click_rank = self.get_last_click_rank(session.clicks)
-
-            for rank, click in enumerate(session.clicks):
+            for rank, click in enumerate(session.get_clicks()):
                 params = self.get_params(self.params, session, rank)
 
                 for param in params.values():
                     param.update_value(None, click,
-                                       rank=rank, clicks=session.clicks,
-                                       last_click_rank=last_click_rank)
+                                       rank=rank, clicks=session.get_clicks(),
+                                       last_click_rank=session.get_last_click_rank())
 
         if not PRETTY_LOG:
             print >>sys.stderr, 'LL: %.10f' % self.get_loglikelihood(sessions)
@@ -80,7 +78,7 @@ class SimpleDCM(ClickModel):
         log_click_probs = []
         exam_full = 1
 
-        for rank, click in enumerate(session.clicks):
+        for rank, click in enumerate(session.get_clicks()):
             params = self.get_params(self.params, session, rank)
             param_values = self.get_param_values(params)
             rel_value = param_values[SimpleDCMRelevance.NAME]
