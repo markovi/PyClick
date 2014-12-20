@@ -268,38 +268,6 @@ class DBNSatisfy(DBNParam):
             self.numerator += exam * attr * sat / p_noclick_after_rank
             self.denominator += exam * attr * ((1 - sat) * p_noclick_after_rank_given_nosat + sat) / p_noclick_after_rank
 
-    # def get_p_nonclick_after_rank(self, session_param_values, rank):
-    #     gamma = session_param_values[DBNGamma.NAME][rank]
-    #     p_nonclick_after_rank = 1
-    #
-    #     max_rank = len(session_param_values[DBNAttract.NAME]) - 1
-    #     for r in range(max_rank, rank, -1):
-    #         attr = session_param_values[DBNAttract.NAME][r]
-    #         p_nonclick_after_rank *= gamma * (1 - attr)
-    #         p_nonclick_after_rank += 1 - gamma
-    #
-    #     sat = session_param_values[self.NAME][rank]
-    #     p_nonclick_after_rank *= (1 - sat)
-    #     p_nonclick_after_rank += sat
-    #
-    #     return p_nonclick_after_rank
-    #
-    # def get_p_click_after_rank(self, session_param_values, rank):
-    #     gamma = session_param_values[DBNGamma.NAME][rank]
-    #
-    #     max_rank = len(session_param_values[DBNAttract.NAME]) - 1
-    #     attr = session_param_values[DBNAttract.NAME][max_rank]
-    #
-    #     p_click_after_rank = attr
-    #     for r in range(max_rank - 1, rank, -1):
-    #         attr = session_param_values[DBNAttract.NAME][r]
-    #         p_click_after_rank *= gamma * (1 - attr)
-    #         p_click_after_rank += attr
-    #
-    #     sat = session_param_values[self.NAME][rank]
-    #     p_click_after_rank *= gamma * (1 - sat)
-    #     return p_click_after_rank
-
 
 class DBNGamma(DBNParam):
     """
@@ -308,10 +276,6 @@ class DBNGamma(DBNParam):
     NAME = "gamma"
 
     def update_value(self, session_param_values, session, rank):
-        # self.numerator = 1
-        # self.denominator = 1
-        # return
-
         max_rank = len(session.web_results) - 1
         if rank == max_rank:
             return
@@ -337,15 +301,6 @@ class DBNGamma(DBNParam):
         else:
             self.numerator += multiplier * gamma * p_noclick_after_rank_given_exam / p_noclick_after_rank
             self.denominator += multiplier * (gamma * p_noclick_after_rank_given_exam + 1 - gamma) / p_noclick_after_rank
-
-        # click = session.clicks[rank]
-        #
-        # if click:
-        #     self.numerator += 1
-        #     self.denominator += 1
-        # else:
-        #     self.numerator += exam * multiplier * gamma * (1 - attr_next) / (1 - exam_next * attr_next)
-        #     self.denominator += exam * multiplier * (1 - gamma * attr_next) / (1 - exam_next * attr_next)
 
 
 class DBNGammaWrapper(ClickModelParamWrapper):
