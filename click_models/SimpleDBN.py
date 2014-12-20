@@ -36,15 +36,13 @@ class SimpleDBN(ClickModel):
         self.params = self.init_params(self.init_param_values)
 
         for session in sessions:
-            last_click_rank = self.get_last_click_rank(session.clicks)
-
-            for rank, click in enumerate(session.clicks):
+            for rank, click in enumerate(session.get_clicks()):
                 params = self.get_params(self.params, session, rank)
 
                 for param in params.values():
                     param.update_value(None, click,
                                        rank=rank,
-                                       last_click_rank=last_click_rank)
+                                       last_click_rank=session.get_last_click_rank())
 
         if not PRETTY_LOG:
             print >>sys.stderr, 'LL: %.10f' % self.get_loglikelihood(sessions)
