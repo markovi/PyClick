@@ -11,7 +11,7 @@ import json
 from click_models.InputReader import MAX_DOCS_PER_QUERY, InputReader
 
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 PRETTY_LOG = True

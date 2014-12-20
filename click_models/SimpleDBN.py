@@ -7,7 +7,7 @@ import sys
 import math
 from click_models.ClickModel import ClickModel, ClickModelParam, PRETTY_LOG, RelevanceWrapper, RelevanceWrapperRel
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 class SimpleDBN(ClickModel):

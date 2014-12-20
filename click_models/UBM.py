@@ -9,7 +9,7 @@ from click_models.ClickModel import ClickModelParam, ClickModelParamWrapper, Cli
 from click_models.InputReader import MAX_DOCS_PER_QUERY, InputReader
 
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 class UBM(ClickModel):

@@ -11,7 +11,7 @@ from click_models.VerticalAwareClickModel import VAExaminationNoAttract, VertAtt
     VertAttractWrapper, VAExaminationAttract, VerticalAwareParamHelper
 
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 class FCM(UBM):

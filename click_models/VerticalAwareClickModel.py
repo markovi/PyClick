@@ -10,7 +10,7 @@ from click_models.InputReader import MAX_DOCS_PER_QUERY
 from click_models.UBM import UBMRelevance, UBMParamHelper, UBMParam
 
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 class VerticalAwareParamHelper(UBMParamHelper):

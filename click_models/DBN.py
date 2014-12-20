@@ -11,7 +11,7 @@ from click_models.ClickModel import ClickModel, ClickModelParam, ClickModelParam
     RelevanceWrapperRel
 from click_models.SimpleDBN import SimpleDBNAttract, SimpleDBNSatisfy, SimpleDBN
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 class DBN(ClickModel):

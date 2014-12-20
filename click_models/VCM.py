@@ -13,7 +13,7 @@ from click_models.VerticalAwareClickModel import VertAttract, VAExaminationNoAtt
     VerticalAwareParamHelper
 
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 class VCM(UBM):
     """

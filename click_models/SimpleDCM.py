@@ -11,7 +11,7 @@ from click_models.ClickModel import ClickModel, ClickModelParam, PRETTY_LOG, Cli
 from click_models.InputReader import MAX_DOCS_PER_QUERY
 
 
-__author__ = 'markil'
+__author__ = 'Ilya Markov'
 
 
 class SimpleDCM(ClickModel):
