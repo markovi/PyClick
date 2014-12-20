@@ -49,7 +49,7 @@ class DBN(ClickModel):
     def get_session_params(self, base_params, session):
         params = {param_name: [] for param_name in base_params}
 
-        for rank, url in enumerate(session.urls):
+        for rank, result in enumerate(session.web_results):
             rank_params = self.get_params(base_params, session, rank)
             for param_name in base_params:
                 params[param_name].append(rank_params[param_name])
@@ -67,7 +67,7 @@ class DBN(ClickModel):
     def update_param_values(self, params, param_values, session):
         param_values[self.EXAMINATION] = self.get_observed_session_examination(param_values, session)
 
-        for rank, click in enumerate(session.clicks):
+        for rank, result in enumerate(session.web_results):
             for param in params.values():
                 param[rank].update_value(param_values, session, rank)
 
@@ -84,7 +84,7 @@ class DBN(ClickModel):
 
             gamma = param_values[DBNGamma.NAME][rank]
             sat = param_values[DBNSatisfy.NAME][rank]
-            if session.clicks[rank]:
+            if session.web_results[rank].click:
                 exam *= gamma * (1 - sat)
             else:
                 exam *= gamma
@@ -224,9 +224,8 @@ class DBNAttract(DBNParam):
     def update_value(self, session_param_values, session, rank):
         attr = session_param_values[self.NAME][rank]
         exam = session_param_values[DBN.EXAMINATION][rank]
-        click = session.clicks[rank]
 
-        if click:
+        if session.web_results[rank].click:
             self.numerator += 1
         else:
             self.numerator += attr * (1 - exam) / (1 - attr * exam)
@@ -242,8 +241,7 @@ class DBNSatisfy(DBNParam):
     NAME = SimpleDBNSatisfy.NAME
 
     def update_value(self, session_param_values, session, rank):
-        click = session.clicks[rank]
-        if not click:
+        if not session.web_results[rank].click:
             return
 
         attr = session_param_values[DBNAttract.NAME][rank]
@@ -262,8 +260,8 @@ class DBNSatisfy(DBNParam):
         p_noclick_after_rank = self.get_p_noclick_after_rank(session_param_values, rank)
         p_noclick_after_rank_given_nosat = (p_noclick_after_rank - 1 + exam_nosat) / exam_nosat
 
-        last_click_rank = DBN.get_last_click_rank(session.clicks)
-        if rank < last_click_rank and any(session.clicks):
+        last_click_rank = session.get_last_click_rank()
+        if rank < last_click_rank and any(session.get_clicks()):
             self.numerator += 0
             self.denominator += exam * attr * (1 - sat) * p_click_after_rank_given_nosat / p_click_after_rank
         else:
@@ -314,7 +312,7 @@ class DBNGamma(DBNParam):
         # self.denominator = 1
         # return
 
-        max_rank = len(session.clicks) - 1
+        max_rank = len(session.web_results) - 1
         if rank == max_rank:
             return
 
@@ -332,8 +330,8 @@ class DBNGamma(DBNParam):
 
         multiplier = exam * (1 - attr * sat)
 
-        last_click_rank = DBN.get_last_click_rank(session.clicks)
-        if rank < last_click_rank and any(session.clicks):
+        last_click_rank = session.get_last_click_rank()
+        if rank < last_click_rank and any(session.get_clicks()):
             self.numerator += multiplier * gamma * p_click_after_rank_given_exam / p_click_after_rank
             self.denominator += multiplier * gamma * p_click_after_rank_given_exam / p_click_after_rank
         else:
