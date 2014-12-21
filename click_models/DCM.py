@@ -46,7 +46,7 @@ class DCM(SimpleDCM):
         return params
 
     def get_params(self, base_params, session, rank, **kwargs):
-        last_click_rank = self.get_last_click_rank(session.clicks)
+        last_click_rank = session.get_last_click_rank()
 
         params = super(DCM, self).get_params(base_params, session, rank)
         if rank >= last_click_rank:
@@ -56,11 +56,9 @@ class DCM(SimpleDCM):
         return params
 
     def update_param_values(self, params, param_values, session, rank):
-        last_click_rank = self.get_last_click_rank(session.clicks)
-
         for param in params.values():
-            param.update_value(param_values, session.clicks[rank],
-                               rank=rank, last_click_rank=last_click_rank)
+            param.update_value(param_values, session.web_results[rank].click,
+                               rank=rank, last_click_rank=session.get_last_click_rank())
 
     def get_simple_dcm(self):
         return SimpleDCM(SimpleDCM.get_prior_values())
@@ -83,10 +81,8 @@ class DCM(SimpleDCM):
             Returns the probability of all documents after the last clicked rank
             being nonrelevant.
         """
-        last_click_rank = DCM.get_last_click_rank(session.clicks)
-
         nonrel_prob_full = 1
-        for r in xrange(last_click_rank + 1, len(session.clicks)):
+        for r in xrange(session.get_last_click_rank() + 1, len(session.get_clicks())):
             nonrel_prob = params[DCMRelevance.NAME].get_param(session, r).get_value()
             nonrel_prob_full *= 1 - nonrel_prob
 
