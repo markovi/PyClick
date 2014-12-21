@@ -56,7 +56,7 @@ class ClickModel(object):
         updated_params = priors
 
         for session in sessions:
-            for rank, click in enumerate(session.clicks):
+            for rank, result in enumerate(session.web_results):
                 params = self.get_params(self.params, session, rank)
                 param_values = self.get_param_values(params)
 
