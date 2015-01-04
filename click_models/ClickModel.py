@@ -84,7 +84,7 @@ class ClickModel(object):
             based on their previous values and on the observed click.
         """
         for param in params.values():
-            param.update_value(param_values, session.clicks[rank])
+            param.update_value(param_values, session.web_results[rank].click)
 
 
     def get_param_values(self, params):
@@ -135,7 +135,7 @@ class ClickModel(object):
         """
         log_click_probs = []
 
-        for rank, click in enumerate(session.clicks):
+        for rank, click in enumerate(session.get_clicks()):
             params = self.get_params(self.params, session, rank)
             param_values = self.get_param_values(params)
             click_prob = self.get_p_click(param_values)

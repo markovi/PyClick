@@ -210,7 +210,7 @@ class UBMExaminationWrapper(ClickModelParamWrapper):
         if dist_str in kwargs:
             distance = kwargs[dist_str]
         else:
-            prev_click_ranks = [r for r, click in enumerate(session.clicks) if r < rank and click]
+            prev_click_ranks = [r for r, click in enumerate(session.get_clicks()) if r < rank and click]
             distance = rank - prev_click_ranks[-1] if len(prev_click_ranks) else 0
 
         return distance
