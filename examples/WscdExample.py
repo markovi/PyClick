@@ -4,7 +4,10 @@
 # Full copyright notice can be found in LICENSE.
 #
 import sys
+from click_models.DBN import DBN
+from click_models.DCM import DCM
 from click_models.SimpleDBN import SimpleDBN
+from click_models.SimpleDCM import SimpleDCM
 from session.Session import *
 
 __author__ = 'Ilya Markov'
@@ -44,12 +47,12 @@ if __name__ == '__main__':
     """
     An example of using PyClick with the Yandex WSCD dataset.
     """
-    train_sessions = parse_wsdm_sessions("data/trainSample")
-    test_sessions = parse_wsdm_sessions("data/testSample")
+    train_sessions = parse_wsdm_sessions("data/oneQueryTrain")
+    test_sessions = parse_wsdm_sessions("data/oneQueryTest")
 
     #TODO: fix initialization
-    SDBN = SimpleDBN(SimpleDBN.get_prior_values())
-    SDBN.train(train_sessions)
-    print SDBN
+    click_model = DCM(DCM.get_prior_values())
+    click_model.train(train_sessions)
+    print click_model
 
-    print SDBN.test(test_sessions)
+    # print click_model.test(test_sessions)
