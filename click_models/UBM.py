@@ -3,10 +3,9 @@
 #
 # Full copyright notice can be found in LICENSE.
 #
-import sys
 from click_models.ClickModel import ClickModelParam, ClickModelParamWrapper, ClickModel, RelevanceWrapper, \
     RelevanceWrapperRel
-from click_models.InputReader import MAX_DOCS_PER_QUERY, InputReader
+from click_models.Constants import MAX_DOCS_PER_QUERY
 
 
 __author__ = 'Ilya Markov'

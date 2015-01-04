@@ -5,7 +5,6 @@
 #
 import sys
 from click_models.ClickModel import ClickModelParam, PRETTY_LOG, MAX_ITERATIONS, RelevanceWrapper, RelevanceWrapperRel
-from click_models.InputReader import MAX_DOCS_PER_QUERY
 from click_models.SimpleDCM import SimpleDCMLambda, SimpleDCMRelevance, SimpleDCM, DCMLambdaWrapper, SimpleDCMRel
 
 __author__ = 'Ilya Markov'

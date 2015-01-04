@@ -8,7 +8,6 @@ import math
 
 from click_models.ClickModel import ClickModel, ClickModelParam, PRETTY_LOG, ClickModelParamWrapper, RelevanceWrapper, \
     RelevanceWrapperRel
-from click_models.InputReader import MAX_DOCS_PER_QUERY
 
 
 __author__ = 'Ilya Markov'

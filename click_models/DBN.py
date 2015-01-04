@@ -4,9 +4,7 @@
 # Full copyright notice can be found in LICENSE.
 #
 from abc import abstractmethod
-import sys
 import math
-from click_models import InputReader
 from click_models.ClickModel import ClickModel, ClickModelParam, ClickModelParamWrapper, FixedParam, RelevanceWrapper, \
     RelevanceWrapperRel
 from click_models.SimpleDBN import SimpleDBNAttract, SimpleDBNSatisfy, SimpleDBN

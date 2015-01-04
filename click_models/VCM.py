@@ -3,11 +3,6 @@
 #
 # Full copyright notice can be found in LICENSE.
 #
-import sys
-
-from click_models.ClickModel import ClickModel, ClickModelParam, ClickModelParamWrapper, RelevanceWrapper, \
-    RelevanceWrapperRel
-from click_models.InputReader import *
 from click_models.UBM import UBMExaminationWrapper, UBMRelevance, UBMParam, UBM, UBMRelevanceWrapper, UBMRelevanceWrapperRel
 from click_models.VerticalAwareClickModel import VertAttract, VAExaminationNoAttract, VertAttractWrapper, VAExaminationAttract, \
     VerticalAwareParamHelper

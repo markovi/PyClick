@@ -6,7 +6,7 @@
 from abc import abstractmethod
 
 from click_models.ClickModel import ClickModelParamWrapper
-from click_models.InputReader import MAX_DOCS_PER_QUERY
+from click_models.Constants import MAX_DOCS_PER_QUERY
 from click_models.UBM import UBMRelevance, UBMParamHelper, UBMParam
 
 
