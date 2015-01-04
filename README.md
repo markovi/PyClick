@@ -17,4 +17,4 @@ Each model is implemented in two modifications:
 
 
 ## How to Use
-Coming soon...
+For examples of PyClick usage, see the '''examples''' folder.

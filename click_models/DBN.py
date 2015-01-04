@@ -76,7 +76,7 @@ class DBN(ClickModel):
             Calculates the examination probability at each rank
             for a session with observed clicks.
         """
-        session_exam = [1.0] * InputReader.MAX_DOCS_PER_QUERY
+        session_exam = [1.0] * len(session.web_results)
         exam = 1
 
         for rank in xrange(len(session_exam)):
@@ -95,7 +95,7 @@ class DBN(ClickModel):
         """
             Predicts the examination probability at each rank for a given session.
         """
-        session_exam = [1.0] * InputReader.MAX_DOCS_PER_QUERY
+        session_exam = [1.0] * len(session.web_results)
         exam = 1
 
         for rank in xrange(len(session_exam)):

@@ -8,6 +8,7 @@ from click_models.DBN import DBN
 from click_models.DCM import DCM
 from click_models.SimpleDBN import SimpleDBN
 from click_models.SimpleDCM import SimpleDCM
+from click_models.UBM import UBM
 from session.Session import *
 
 __author__ = 'Ilya Markov'
@@ -51,8 +52,8 @@ if __name__ == '__main__':
     test_sessions = parse_wsdm_sessions("data/oneQueryTest")
 
     #TODO: fix initialization
-    click_model = DCM(DCM.get_prior_values())
+    click_model = UBM(UBM.get_prior_values())
     click_model.train(train_sessions)
     print click_model
 
-    # print click_model.test(test_sessions)
+    print click_model.test(test_sessions)
