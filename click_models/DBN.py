@@ -115,7 +115,7 @@ class DBN(ClickModel):
         session_param_values = self.get_param_values(session_params)
         session_exam = self.get_observed_session_examination(session_param_values, session)
 
-        for rank, click in enumerate(session.clicks):
+        for rank, click in enumerate(session.get_clicks()):
             exam = session_exam[rank]
             attr = session_param_values[DBNAttract.NAME][rank]
 
