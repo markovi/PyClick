@@ -230,6 +230,7 @@ class UBMRelevanceWrapperRel(RelevanceWrapperRel):
     def get_params_from_JSON(self, json_str):
         self.init_param()
 
+        #TODO: fix
         for grade in InputReader.RELEVANCE_WEB:
             param_helper_backup = self.params[grade].param_helper
             self.params[grade].__dict__ = json_str[str(grade)]

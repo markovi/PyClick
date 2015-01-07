@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Copyright (C) 2014  Ilya Markov
 #
@@ -48,8 +49,8 @@ if __name__ == '__main__':
     """
     An example of using PyClick with the Yandex WSCD dataset.
     """
-    train_sessions = parse_wsdm_sessions("data/oneQueryTrain")
-    test_sessions = parse_wsdm_sessions("data/oneQueryTest")
+    train_sessions = parse_wsdm_sessions("examples/data/oneQueryTrain")
+    test_sessions = parse_wsdm_sessions("examples/data/oneQueryTest")
 
     #TODO: fix initialization
     click_model = UBM(UBM.get_prior_values())

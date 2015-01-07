@@ -8,6 +8,7 @@ import math
 import sys
 from abc import abstractmethod
 import json
+from click_models.Constants import MAX_DOCS_PER_QUERY
 
 
 __author__ = 'Ilya Markov'
