@@ -18,4 +18,5 @@ Each model is implemented in two modifications:
 
 ## How to Use
 For examples of PyClick usage, see the ```examples``` folder.
-To run an example ```X```, execute the following command from the root directory: ```python -m examples.X```
+To run an example ```X```, execute the following command from the root directory
+(without the ```.py``` extension): ```python -m examples.X```.
