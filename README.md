@@ -20,21 +20,29 @@ Each model is implemented in two modifications:
 
 #### Installation
 To install PyClick, run the following command from the PyClick root:
+
  ```python setup.py install```
 
 #### Examples
 Examples of PyClick usage are in the ```examples``` folder, with the corresponding data located in ```examples/data```. To run an example ```X.py```, use the following command:
+
 ```python X.py train_data test_data```
+
 or
+
 ```./X.py train_data test_data```
+
 In the latter case, you may need to change permissions using ```chmod u+x X.py```.
 
 #### SimpleExample.py
 ```SimpleExample.py``` takes train and test files as an input, trains several click models, outputs the trained parameters and calculates the log-likelihood, perplexity and position perplexity using test data.
 
 To run ```SimpleExample.py```, use the following:
+
 ```python SimpleExample.py data/oneQueryTrain oneQueryTest```
+
 or
+
 ```./SimpleExample.py data/oneQueryTrain oneQueryTest```
 
 The train/test file format is:
