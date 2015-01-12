@@ -16,9 +16,8 @@ __author__ = 'Ilya Markov'
 
 
 def parse_wsdm_sessions(sessions_filename):
-    """
-    Parses WSCD search sessions in the given file into Session objects.
-    """
+    """Parses search sessions in the given file into Session objects."""
+
     sessions_file = open(sessions_filename, "r")
     sessions = []
 
@@ -45,16 +44,27 @@ def parse_wsdm_sessions(sessions_filename):
     return sessions
 
 
-if __name__ == '__main__':
-    """
-    An example of using PyClick with the Yandex WSCD dataset.
-    """
-    train_sessions = parse_wsdm_sessions("examples/data/oneQueryTrain")
-    test_sessions = parse_wsdm_sessions("examples/data/oneQueryTest")
+def main(train_filename, test_filename):
+    train_sessions = parse_wsdm_sessions(train_filename)
+    test_sessions = parse_wsdm_sessions(test_filename)
 
     #TODO: fix initialization
-    click_model = UBM(UBM.get_prior_values())
-    click_model.train(train_sessions)
-    print click_model
+    for click_model_class in [SimpleDCM, SimpleDBN, DBN, UBM]:
+        print "==== %s ====" % click_model_class.__name__
+        click_model = click_model_class(click_model_class.get_prior_values())
+        click_model.train(train_sessions)
 
-    print click_model.test(test_sessions)
+        print click_model
+
+        print "Log-likelihood and perplexity"
+        print click_model.test(test_sessions)
+        print ""
+
+
+# An example of using PyClick.
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print "USAGE: %s <file with train sessions> <file with test sessions>" % sys.argv[0]
+        sys.exit(1)
+
+    main(sys.argv[1], sys.argv[2])
