@@ -133,7 +133,7 @@ class DBN(ClickModel):
         session_param_values = self.get_param_values(session_params)
         session_exam = self.get_predicted_session_examination(session_param_values, session)
 
-        for rank, url in enumerate(session.urls):
+        for rank, results in enumerate(session.web_results):
             exam = session_exam[rank]
             attr = session_param_values[DBNAttract.NAME][rank]
 

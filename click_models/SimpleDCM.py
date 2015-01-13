@@ -55,7 +55,7 @@ class SimpleDCM(ClickModel):
         click_probs = []
         exam_full = 1
 
-        for rank, url in enumerate(session.urls):
+        for rank, result in enumerate(session.web_results):
             params = self.get_params(self.params, session, rank)
             param_values = self.get_param_values(params)
 

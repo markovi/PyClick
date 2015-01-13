@@ -53,9 +53,9 @@ class UBM(ClickModel):
         return click_probs
 
     def get_click_probs_from_matrix(self, session, click_matrix, exam_type, rank_transformation):
-        click_probs = [0.0] * len(session.urls)
+        click_probs = [0.0] * len(session.web_results)
 
-        for rank, url in enumerate(session.urls):
+        for rank, url in enumerate(session.web_results):
             rank_actual = rank_transformation(session, rank)
 
             # No click before rank
@@ -80,17 +80,17 @@ class UBM(ClickModel):
             For i = j it is P(C_j = 1 | C_0 = 0, ..., C_j = 0).
             For j > i it is P(C_i+1 = 0, ..., C_j = 0 | C_i = 1)
         """
-        click_matrix = [[1 for j in xrange(len(session.urls))]
-                         for i in xrange(len(session.urls))]
+        click_matrix = [[1 for j in xrange(len(session.web_results))]
+                         for i in xrange(len(session.web_results))]
 
-        for i in xrange(len(session.urls)):
+        for i in xrange(len(session.web_results)):
             for j in xrange(0, i):
                 click_matrix[i][j] = (click_matrix[i][j - 1] if j > 0 else 1) * \
                                      (1 - self.get_p_click_at_dist(session, j, 0, exam_type))
 
             click_matrix[i][i] = self.get_p_click_at_dist(session, i, 0, exam_type)
 
-            for j in xrange(i + 1, len(session.urls)):
+            for j in xrange(i + 1, len(session.web_results)):
                 click_matrix[i][j] = (click_matrix[i][j - 1] if j - i > 1 else 1) * \
                                      (1 - self.get_p_click_at_dist(session, j, j - i, exam_type))
 
