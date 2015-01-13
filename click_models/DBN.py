@@ -63,7 +63,7 @@ class DBN(ClickModel):
         return param_values
 
     def update_param_values(self, params, param_values, session):
-        param_values[self.EXAMINATION] = self.get_observed_session_examination(param_values, session)
+        param_values[self.EXAMINATION] = self.get_predicted_session_examination(param_values, session)
 
         for rank, result in enumerate(session.web_results):
             for param in params.values():
