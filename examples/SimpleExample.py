@@ -1,70 +1,63 @@
-#!/usr/bin/env python
 #
-# Copyright (C) 2014  Ilya Markov
+# Copyright (C) 2015  Ilya Markov
 #
 # Full copyright notice can be found in LICENSE.
 #
 import sys
-from click_models.DBN import DBN
-from click_models.DCM import DCM
-from click_models.SimpleDBN import SimpleDBN
-from click_models.SimpleDCM import SimpleDCM
-from click_models.UBM import UBM
-from session.Session import *
+
+from pyclick.click_models.Evaluation import LogLikelihood, Perplexity
+from pyclick.click_models.UBM import UBM
+from pyclick.click_models.DBN import DBN
+from pyclick.click_models.SDBN import SDBN
+from pyclick.click_models.DCM import DCM
+from pyclick.click_models.CTR import DCTR, RCTR, GCTR
+from pyclick.click_models.CM import CM
+from pyclick.click_models.PBM import PBM
+from pyclick.utils.Utils import Utils
+from pyclick.utils.YandexRelPredChallengeParser import YandexRelPredChallengeParser
+
 
 __author__ = 'Ilya Markov'
 
 
-def parse_wsdm_sessions(sessions_filename):
-    """Parses search sessions in the given file into Session objects."""
+if __name__ == "__main__":
+    print "==============================="
+    print "This is an example of using PyClick for training and testing click models."
+    print "==============================="
 
-    sessions_file = open(sessions_filename, "r")
-    sessions = []
-
-    for line in sessions_file:
-        for session_str in line.split(";"):
-            if session_str.strip() == "":
-                continue
-
-            session_str = session_str.strip()
-            session_str = session_str.split("\t")
-            query = session_str[0]
-
-            session_str = session_str[1].split(":")
-            docs = session_str[0].strip().split(",")
-            clicks = session_str[1].strip().split(",")
-
-            session = Session(query)
-            for doc in docs:
-                web_result = Result(doc, -1, 1 if doc in clicks else 0)
-                session.add_web_result(web_result)
-
-            sessions.append(session)
-
-    return sessions
-
-
-def main(train_filename, test_filename):
-    train_sessions = parse_wsdm_sessions(train_filename)
-    test_sessions = parse_wsdm_sessions(test_filename)
-
-    #TODO: fix initialization
-    for click_model_class in [SimpleDCM, SimpleDBN, DBN, UBM]:
-        print "==== %s ====" % click_model_class.__name__
-        click_model = click_model_class(click_model_class.get_prior_values())
-        click_model.train(train_sessions)
-
-        print click_model
-
-        print "Log-likelihood and perplexity"
-        print click_model.test(test_sessions)
+    if len(sys.argv) < 4:
+        print "USAGE: %s <click_model> <dataset> <sessions_max>" % sys.argv[0]
+        print "\tclick_model - the name of a click model to use."
+        print "\tdataset - the path to the dataset from Yandex Relevance Prediction Challenge"
+        print "\tsessions_max - the maximum number of one-query search sessions to consider"
         print ""
-
-
-# An example of using PyClick.
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print "USAGE: %s <file with train sessions> <file with test sessions>" % sys.argv[0]
         sys.exit(1)
 
-    main(sys.argv[1], sys.argv[2])
+    click_model = globals()[sys.argv[1]]()
+    search_sessions_path = sys.argv[2]
+    search_sessions_num = int(sys.argv[3])
+
+    search_sessions = YandexRelPredChallengeParser().parse(search_sessions_path, search_sessions_num)
+
+    train_test_split = int(len(search_sessions) * 0.75)
+    train_sessions = search_sessions[:train_test_split]
+    train_queries = Utils.get_unique_queries(train_sessions)
+
+    test_sessions = Utils.filter_sessions(search_sessions[train_test_split:], train_queries)
+    test_queries = Utils.get_unique_queries(test_sessions)
+
+    print "-------------------------------"
+    print "Training on %d search sessions (%d unique queries)." % (len(train_sessions), len(train_queries))
+    print "-------------------------------"
+
+    click_model.train(search_sessions)
+    print "\tTrained %s click model:\n%r" % (click_model.__class__.__name__, click_model)
+
+    print "-------------------------------"
+    print "Testing on %d search sessions (%d unique queries)." % (len(test_sessions), len(test_queries))
+    print "-------------------------------"
+
+    loglikelihood = LogLikelihood()
+    print "\tlog-likelihood: %f" % loglikelihood.evaluate(click_model, search_sessions)
+    perplexity = Perplexity()
+    print "\tperplexity: %f" % perplexity.evaluate(click_model, search_sessions)[0]

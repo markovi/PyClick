@@ -2,9 +2,9 @@ from distutils.core import setup
 
 setup(
     name='PyClick',
-    version='0.1',
-    packages=['session', 'click_models'],
-    url='https://github.com/markovi/PyClick',
+    version='0.2',
+    packages=['pyclick', 'pyclick.search_session', 'pyclick.click_models', 'pyclick.utils'],
+    url='https://bitbucket.org/markil/pyclick2',
     license='GNU General Public License',
     author='Ilya Markov',
     author_email='',
