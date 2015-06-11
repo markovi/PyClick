@@ -78,7 +78,7 @@ class DBN(ClickModel):
 
         for rank, session_param in enumerate(session_params):
             attr = session_param[self.param_names.attr].value()
-            exam = session_param[self.param_names.attr].value()
+            exam = session_param[self.param_names.exam].value()
 
             click_probs.append(attr * exam)
 

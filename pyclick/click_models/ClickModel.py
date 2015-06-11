@@ -4,12 +4,20 @@
 # Full copyright notice can be found in LICENSE.
 #
 from abc import abstractmethod
+import json
+from enum import Enum
 
 __author__ = 'Ilya Markov'
 
 
 class ClickModel(object):
     """An abstract click model."""
+
+    param_names = Enum('ParamNames', 'param_name')
+    """
+    The names of the click model parameters.
+    Should be defined by each subclass.
+    """
 
     def __init__(self):
         self.params = {}
@@ -22,6 +30,28 @@ class ClickModel(object):
     def train(self, search_sessions):
         """Trains the click model using the given list of search sessions."""
         self._inference.infer_params(self, search_sessions)
+
+    def to_json(self):
+        """
+        Converts the model into JSON and returns the corresponding string.
+
+        :returns: The JSON representation of the model.
+        """
+        json_dict = {}
+        for param_name, param in self.params.items():
+            json_dict[param_name.name] = param.to_json()
+        return json.dumps(json_dict)
+
+    def from_json(self, json_str):
+        """
+        Initializes the model from the given JSON string.
+
+        :param json_param: The JSON representation of the model.
+        """
+        json_obj = json.loads(json_str)
+        for json_param_name, json_param in json_obj.items():
+            param_name = self.param_names[json_param_name]
+            self.params[param_name].from_json(json_param)
 
     def __str__(self):
         params_str = ''

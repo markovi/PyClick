@@ -34,10 +34,10 @@ class UBM(ClickModel):
     param_names = Enum('UBMParamNames', 'attr exam')
     """The names of the UBM parameters."""
 
-    def __init__(self):
+    def __init__(self, inference=EMInference()):
         self.params = {self.param_names.attr: QueryDocumentParamContainer(UBMAttrEM),
                        self.param_names.exam: RankSquaredParamContainer.default(UBMExamEM)}
-        self._inference = EMInference()
+        self._inference = inference
 
     def get_session_params(self, search_session):
         session_params = []

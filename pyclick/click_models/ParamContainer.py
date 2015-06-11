@@ -4,6 +4,8 @@
 # Full copyright notice can be found in LICENSE.
 #
 from abc import abstractmethod
+from collections import defaultdict
+import json
 
 __author__ = 'Ilya Markov'
 
@@ -27,6 +29,22 @@ class ParamContainer(object):
         :returns: The number of parameters in the container.
         """
         return len(self._container)
+
+    def to_json(self):
+        """
+        Converts the parameter container into JSON and returns the corresponding string.
+
+        :returns: The JSON representation of the container.
+        """
+        return json.dumps(self._container, default=lambda o: o.__dict__)
+
+    @abstractmethod
+    def from_json(self, json_str):
+        """
+        Initializes the parameter container from the given JSON string.
+
+        :param json_str: The JSON representation of the container.
+        """
 
     @abstractmethod
     def get(self, *args):
@@ -52,7 +70,7 @@ class QueryDocumentParamContainer(ParamContainer):
 
     def __init__(self, param_class):
         super(QueryDocumentParamContainer, self).__init__(param_class)
-        self._container = {}
+        self._container = defaultdict(dict)
 
     def get(self, query, search_result):
         """
@@ -80,6 +98,13 @@ class QueryDocumentParamContainer(ParamContainer):
         if query not in self._container:
             self._container[query] = {}
         self._container[query][search_result] = param
+
+    def from_json(self, json_str):
+        json_container = json.loads(json_str)
+        for query in json_container:
+            for result in json_container[query]:
+                self._container[query][result] = self._param_class()
+                self._container[query][result].__dict__ = json_container[query][result]
 
     def __str__(self):
         param_str = ''
@@ -132,6 +157,11 @@ class RankParamContainer(ParamContainer):
         :param rank: The rank.
         """
         self._container[rank] = param
+
+    def from_json(self, json_str):
+        json_container = json.loads(json_str)
+        for rank, param in enumerate(self._container):
+            param.__dict__ = json_container[rank]
 
     def __str__(self):
         return '%s\n' % ' '.join([str(item) for item in self._container])
@@ -192,6 +222,12 @@ class RankSquaredParamContainer(ParamContainer):
         """
         self._container[rank1][rank2] = param
 
+    def from_json(self, json_str):
+        json_container = json.loads(json_str)
+        for rank1, _ in enumerate(self._container):
+            for rank2, param in enumerate(self._container[rank1]):
+                param.__dict__ = json_container[rank1][rank2]
+
     def __str__(self):
         return '\n'.join([' '.join(['{:8s}'.format(item) for item in row]) for row in self._container])
 
@@ -217,6 +253,9 @@ class SingleParamContainer(ParamContainer):
 
     def set(self, param):
         self._container = param
+
+    def from_json(self, json_str):
+        self._container.__dict__ = json.loads(json_str)
 
     def __str__(self):
         return '%s\n' % str(self._container)

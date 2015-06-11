@@ -36,14 +36,22 @@ class MLEInference(Inference):
 class EMInference(Inference):
     """The expectation-maximization (EM) approach to parameter inference."""
 
-    ITERATION_NUM = 50
+    ITERATION_NUM = 5
     """Number of iterations of the EM algorithm."""
+
+    def __init__(self, iter_num=ITERATION_NUM):
+        """
+        Initializes the EM inference method with a given number of iterations.
+
+        :param iter_num: The number of iterations to use.
+        """
+        self.iter_num = iter_num
 
     def infer_params(self, click_model, search_sessions):
         if search_sessions is None or len(search_sessions) == 0:
             return
 
-        for iteration in xrange(self.ITERATION_NUM):
+        for iteration in xrange(self.iter_num):
             new_click_model = click_model.__class__()
 
             for search_session in search_sessions:
