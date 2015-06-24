@@ -4,6 +4,8 @@
 # Full copyright notice can be found in LICENSE.
 #
 from enum import Enum
+import itertools
+import math
 
 from pyclick.click_models.ClickModel import ClickModel
 from pyclick.click_models.Inference import EMInference
@@ -11,7 +13,7 @@ from pyclick.click_models.Param import ParamEM, ParamStatic
 from pyclick.click_models.ParamContainer import QueryDocumentParamContainer, SingleParamContainer
 
 
-__author__ = 'Ilya Markov'
+__author__ = 'Ilya Markov, Aleksandr Chuklin'
 
 
 class DBN(ClickModel):
@@ -86,24 +88,7 @@ class DBN(ClickModel):
 
     def get_conditional_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
-        exam = 1
-        click_probs = []
-
-        for rank, result in enumerate(search_session.web_results):
-            attr = session_params[rank][self.param_names.attr].value()
-            sat = session_params[rank][self.param_names.sat].value()
-            cont = session_params[rank][self.param_names.cont].value()
-
-            if result.click:
-                click_prob = attr * exam
-                exam = cont * (1 - sat)
-            else:
-                click_prob = 1 - attr * exam
-                exam *= cont * (1 - attr) / click_prob
-
-            click_probs.append(click_prob)
-
-        return click_probs
+        return self._get_tail_clicks(search_session, 0, session_params)[0]
 
     def predict_relevance(self, query, search_result):
         attr = self.params[self.param_names.attr].get(query, search_result).value()
@@ -131,6 +116,82 @@ class DBN(ClickModel):
             session_exam.append(exam)
 
         return session_exam
+
+    @classmethod
+    def _get_tail_clicks(cls, search_session, start_rank, session_params):
+        """
+        Calculate P(C_r | C_{r-1}, ..., C_l, E_l = 1), P(E_r = 1 | C_{r-1}, ..., C_l, E_l = 1)
+        for each r in [l, n) where l is start_rank.
+        """
+        exam = 1.0
+        click_probs = []
+        exam_probs = [exam]
+        for rank, result in enumerate(search_session.web_results[start_rank:]):
+            attr = session_params[rank][cls.param_names.attr].value()
+            sat = session_params[rank][cls.param_names.sat].value()
+            cont = session_params[rank][cls.param_names.cont].value()
+            if result.click:
+                click_prob = attr * exam
+                exam = cont * (1 - sat)
+            else:
+                click_prob = 1 - attr * exam
+                exam *= cont * (1 - attr) / click_prob
+            click_probs.append(click_prob)
+            exam_probs.append(exam)
+        return click_probs, exam_probs
+
+    @classmethod
+    def _get_continuation_factor(cls, search_session, rank, session_params):
+        """Calculate P(E_r = x, S_r = y, E_{r+1} = z, \mathbf{C}) up to a constant."""
+        click = search_session.web_results[rank].click
+        attr = session_params[rank][cls.param_names.attr].value()
+        sat = session_params[rank][cls.param_names.sat].value()
+        cont = session_params[rank][cls.param_names.cont].value()
+
+        def factor(x, y, z):
+            log_prob = 0.0
+            # We use the chain rule for probabilities and drop the first term P(\mathbf{C}_{<r})
+            # right away.
+            #
+            # First, compute the middle part P(C_r, S_r, E_{r+1} | E_r)
+            if not click:
+                if y:
+                    # no click -> no satisfaction
+                    return 0.0
+                log_prob += math.log(1 - attr)
+                if x:
+                    log_prob += math.log(cont if z else (1 - cont))
+                elif z:
+                    # no examination at r -> no examination at r+1
+                    return 0.0
+            else:
+                if not x:
+                    return 0.0
+                log_prob += math.log(attr)
+                if not y:
+                    log_prob += math.log(1 - sat)
+                    log_prob += math.log(cont if z else (1 - cont))
+                else:
+                    if z:
+                        # satisfaction at r -> no examination at r+1
+                        return 0.0
+                    log_prob += math.log(sat)
+            # Then we compute P(\mathbf{C}_{>r} | E_{r+1} = z)
+            if not z:
+                if search_session.get_last_click_rank() >= rank + 1:
+                    # no examination -> no clicks
+                    return 0.0
+            elif rank + 1 < len(search_session.web_results):
+                log_prob += sum(
+                    math.log(p) for p in cls._get_tail_clicks(search_session,
+                                                              rank + 1,
+                                                              session_params)[0])
+            # Finally, we compute P(E_r = 1 | \mathbf{C}_{<r})
+            exam = cls._get_tail_clicks(search_session, 0, session_params)[1][rank]
+            log_prob += math.log(exam if x else (1 - exam))
+            return math.exp(log_prob)
+        return factor
+
 
     def _get_session_clickafterrank(self, search_session, session_params):
         """
@@ -205,16 +266,9 @@ class DBNContEM(ParamEM):
     """
 
     def update(self, search_session, rank, session_params):
-        if rank < search_session.get_last_click_rank():
-            self._numerator += 1
-        else:
-            cont = session_params[rank][DBN.param_names.cont].value()
-            car = session_params[rank + 1][DBN.param_names.car].value() \
-                if rank < len(search_session.web_results) - 1 \
-                else 0
-
-            num = cont * (1 - car)
-            denom = 1 - cont * car
-            self._numerator += num / denom
-
-        self._denominator += 1
+        factor = DBN._get_continuation_factor(search_session, rank, session_params)
+        # P(E_r = 1, S_r = 0, E_{r+1} = z | C)
+        exam_prob = lambda z: factor(1, 0, z) / sum(
+                factor(*p) for p in itertools.product([0, 1], repeat=3))
+        self._numerator += exam_prob(1)
+        self._denominator += sum(exam_prob(x) for x in [0, 1])

@@ -10,6 +10,7 @@ from pyclick.click_models.UBM import UBM
 from pyclick.click_models.DBN import DBN
 from pyclick.click_models.SDBN import SDBN
 from pyclick.click_models.DCM import DCM
+from pyclick.click_models.CCM import CCM
 from pyclick.click_models.CTR import DCTR, RCTR, GCTR
 from pyclick.click_models.CM import CM
 from pyclick.click_models.PBM import PBM
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     print "-------------------------------"
 
     click_model.train(search_sessions)
-    print "\tTrained %s click model:\n%r" % (click_model.__class__.__name__, click_model)
+    #print "\tTrained %s click model:\n%r" % (click_model.__class__.__name__, click_model)
 
     print "-------------------------------"
     print "Testing on %d search sessions (%d unique queries)." % (len(test_sessions), len(test_queries))
