@@ -6,12 +6,15 @@
 from __future__ import division
 
 from enum import Enum
+import itertools
+import math
+
 from pyclick.click_models.ClickModel import ClickModel
 from pyclick.click_models.Inference import EMInference
-from pyclick.click_models.Param import ParamEM
+from pyclick.click_models.Param import ParamEM, ParamStatic
 from pyclick.click_models.ParamContainer import QueryDocumentParamContainer, SingleParamContainer
 
-__author__ = 'Ilya Markov, Luka Stout'
+__author__ = 'Ilya Markov, Luka Stout, Aleksandr Chuklin'
 
 
 class CCM(ClickModel):
@@ -22,139 +25,208 @@ class CCM(ClickModel):
     Proceedings of WWW, pages 11-20, 2009.
 
     CCM contains a set of attractiveness parameters,
-    which depend on a query and a document.
-    It also contains three examination parameters with no dependencies.
+    which depends on a query and a document.
+    It also contains three continuation (persistence) parameters.
     """
 
-    param_names = Enum('CCMParamNames','attr exam_noclick exam_click_nonrel exam_click_rel')
+    param_names = Enum('CCMParamNames',
+                       'attr cont_noclick cont_click_nonrel cont_click_rel exam car')
     """
     The names of the DBN parameters.
 
     :attr: the attractiveness parameter.
     Determines whether a user clicks on a search results after examining it.
-    :exam_noclick: the examination parameter.
-    Determines whether a user continues examining search results after not clicking on the current one.
-    :exam_click_nonrel: the examination parameter.
-    Determines whether a user continues examining search results after clicking on a non-relevant result.
-    :exam_click_rel: the examination parameter.
-    Determines whether a user continues examining search results after clicking on a relevant result.
+    :cont_noclick: the examination parameter (tau_1).
+    Determines whether a user continues examining search results after
+        not clicking the current one.
+    :cont_click_nonrel: the examination parameter (tau_2).
+    Determines whether a user continues examining search results after
+        clicking a non-relevant result.
+    :cont_click_rel: the examination parameter (tau_3).
+    Determines whether a user continues examining search results after clicking
+        a relevant result.
+
+    :exam: the examination probability.
+    Not defined explicitly in the CCM model, but needs to be calculated during inference.
+    Determines whether a user examines a particular search result.
+    :car: the probability of click on or after rank $r$ given examination at rank $r$.
+    Not defined explicitly in the CCM model, but needs to be calculated during inference.
+    Determines whether a user clicks on the current result or any result below the current one.
     """
 
     def __init__(self):
         self.params = {self.param_names.attr: QueryDocumentParamContainer(CCMAttrEM),
-                       self.param_names.exam_noclick: SingleParamContainer(CCMExamNoclickEM),
-                       self.param_names.exam_click_nonrel: SingleParamContainer(CCMExamClickEM),
-                       self.param_names.exam_click_rel: SingleParamContainer(CCMExamClickEM)}
-
+            self.param_names.cont_noclick: SingleParamContainer(CCMContNoclickEM),
+            self.param_names.cont_click_nonrel: SingleParamContainer(CCMContClickNonrelEM),
+            self.param_names.cont_click_rel: SingleParamContainer(CCMContClickRelEM)}
         self._inference = EMInference()
 
     def get_session_params(self, search_session):
         session_params = []
 
-        exam_probs = self._get_session_exam(search_session)
-        click_afters = self._get_session_click_after(search_session)
-
         for rank, result in enumerate(search_session.web_results):
-            param_index = {QueryDocumentParamContainer.QUERY_IND: search_session.query,
-                           QueryDocumentParamContainer.DOC_IND: result.id}
-
-            rel = self._get_param_at_index(self.param_names.attr, CCMAttrEM, param_index)
-            tau_no_click = self._get_param_at_index(self.param_names.exam_noclick, CCMExamNoclickEM, param_index)
-            tau_click = self._get_param_at_index(self.param_names.exam_click, CCMExamClickEM, param_index)
-            
-
-            param_dict = {self.param_names.attr: rel,
-                    self.param_names.exam_noclick: tau_no_click,
-                    self.param_names.exam_click: tau_click,
-                    'exam' : exam_probs[rank],
-                    'click_after' : click_afters[rank]}
-            
+            attr = self.params[self.param_names.attr].get(search_session.query, result.id)
+            param_dict = {self.param_names.attr: attr}
+            for cont in [self.param_names.cont_noclick,
+                         self.param_names.cont_click_nonrel,
+                         self.param_names.cont_click_rel]:
+                param_dict[cont] = self.params[cont].get()
             session_params.append(param_dict)
+
+        session_exam = self._get_session_exam(session_params)
+        session_clickafterrank = self._get_session_clickafterrank(
+                len(search_session.web_results),
+                session_params)
+
+        for rank, session_param in enumerate(session_params):
+            session_param[self.param_names.exam] = ParamStatic(session_exam[rank])
+            session_param[self.param_names.car] = ParamStatic(session_clickafterrank[rank])
 
         return session_params
 
-    # TODO: @Ilya: check the correctness, e.g., line 73
-    # (seems like it should depend on the current click: click => rel, no click => 1-rel)
-    def get_conditional_click_probs(self, search_session):
-        session_params = self.get_session_params(search_session)
-        click_probs = []
-        actual_clicks = search_session.get_clicks()
-        last_click = search_session.get_last_click_rank()
-        for rank, result in enumerate(search_session.web_results):
-            rel = session_params[rank][self.param_names.attr].value()
-            if rank <= last_click:
-                click_probs.append(rel)
-            else:
-                tau_click = session_params[rank][CCM.param_names.exam_click].value()
-                rel_prev = session_params[rank-1][self.param_names.attr].value()
-                tau_no_click = session_params[rank][CCM.param_names.exam_noclick].value()
-
-                if actual_clicks[rank-1]:
-                    click_probs.append( rel * tau_click * rel_prev )
-                else:
-                    rel_last_click = session_params[last_click][self.param_names.attr].value()
-                    chance_since_last_click = tau_click * rel_last_click
-                    for rank_2, result in list(enumerate(search_session.web_results))[last_click+1:rank]:
-                        rel_2 = session_params[rank_2][self.param_names.attr].value()
-                        chance_since_last_click *= tau_no_click * rel_2
-                    click_probs.append( rel * chance_since_last_click )
-        for rank, click in enumerate(search_session.get_clicks()):
-            if not click:
-                click_probs[rank] = 1 - click_probs[rank]
-        return click_probs
-
-    # TODO: derive the correct formula
     def predict_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
         click_probs = []
-        for rank, result in enumerate(search_session.web_results):
-            rel = session_params[rank][self.param_names.attr].value()
-            exam = session_params[rank]['exam']
-            click_prob = rel * exam
-            click_probs.append(click_prob)
+
+        for rank, session_param in enumerate(session_params):
+            attr = session_param[self.param_names.attr].value()
+            exam = session_param[self.param_names.exam].value()
+
+            click_probs.append(attr * exam)
+
         return click_probs
 
-    def _get_session_exam(self, search_session):
-        """ Method to calculate Epsilon. """
-        exam_probs = [1]
+    def get_conditional_click_probs(self, search_session):
+        session_params = self.get_session_params(search_session)
+        return self._get_tail_clicks(search_session, 0, session_params)[0]
 
-        for rank, result in list(enumerate(search_session.web_results[:-1])):
-            param_index = {QueryDocumentParamContainer.QUERY_IND: search_session.query,
-                            QueryDocumentParamContainer.DOC_IND: result.id}
+    def predict_relevance(self, query, search_result):
+        attr = self.params[self.param_names.attr].get(query, search_result).value()
+        return attr**2
 
-            prev_exam = exam_probs[-1]
+    @classmethod
+    def _get_session_exam(cls, session_params):
+        """
+        Calculates the examination probability P(E_r=1) for each search result in a given search session.
 
-            rel = self._get_param_at_index(self.param_names.attr, CCMAttrEM, param_index).value()
-            tau_click = self._get_param_at_index(self.param_names.exam_click, CCMExamClickEM, param_index).value()
-            tau_no_click = self._get_param_at_index(self.param_names.exam_noclick, CCMExamNoclickEM, param_index).value()
+        :param session_params: The current values of parameters for a given search session.
 
-            exam_probs.append( prev_exam * ( rel * tau_click + (1-rel) * tau_no_click ) )
-        return exam_probs
-    
-    def _get_session_click_after(self, search_session):
-        """ P(C_{>=r} = 1 | E_r = 1), see DBN implementation for more details """
-        probs = [0]
+        :returns: The list of examination probabilities for a given search session.
+        """
+        session_exam = [1]
 
-        for rank, result in enumerate(search_session.web_results[::-1]):
-            param_index = {QueryDocumentParamContainer.QUERY_IND: search_session.query,
-                            QueryDocumentParamContainer.DOC_IND: result.id}
+        for rank, session_param in enumerate(session_params):
+            attr = session_param[cls.param_names.attr].value()
+            tau_1 = session_param[cls.param_names.cont_noclick].value()
+            tau_2 = session_param[cls.param_names.cont_click_nonrel].value()
+            tau_3 = session_param[cls.param_names.cont_click_rel].value()
+            exam = session_exam[rank]
 
-            prev_prob = probs[-1]
-            rel = self._get_param_at_index(self.param_names.attr, CCMAttrEM, param_index).value()
-            tau_no_click = self._get_param_at_index(self.param_names.exam_noclick, CCMExamNoclickEM, param_index).value()
+            exam *= (1 - attr) * tau_1 + attr * ((1 - attr) * tau_2 + attr * tau_3)
+            session_exam.append(exam)
 
+        return session_exam
 
-            prob = rel + (1-rel) * tau_no_click * prev_prob 
-            probs.append(prob)
-        return probs[::-1]
+    @classmethod
+    def _get_tail_clicks(cls, search_session, start_rank, session_params):
+        """
+        Calculate P(C_r | C_{r-1}, ..., C_l, E_l = 1), P(E_r = 1 | C_{r-1}, ..., C_l, E_l = 1)
+        for each r in [l, n) where l is start_rank.
+        """
+        exam = 1.0
+        click_probs = []
+        exam_probs = [exam]
+        for rank, result in enumerate(search_session.web_results[start_rank:]):
+            attr = session_params[rank][cls.param_names.attr].value()
+            tau_1 = session_params[rank][cls.param_names.cont_noclick].value()
+            tau_2 = session_params[rank][cls.param_names.cont_click_nonrel].value()
+            tau_3 = session_params[rank][cls.param_names.cont_click_rel].value()
 
+            if result.click:
+                click_prob = attr * exam
+                exam = tau_2 * (1 - attr) + tau_3 * attr
+            else:
+                click_prob = 1 - attr * exam
+                exam *= tau_1 * (1 - attr) / click_prob
+            click_probs.append(click_prob)
+            exam_probs.append(exam)
+        return click_probs, exam_probs
 
-    def predict_relevance(self, query, doc):
-        param_index = {QueryDocumentParamContainer.QUERY_IND: query,
-                  QueryDocumentParamContainer.DOC_IND: doc}
+    @classmethod
+    def _get_continuation_factor(cls, search_session, rank, session_params):
+        """Calculate P(E_r = x, S_r = y, E_{r+1} = z, \mathbf{C}) up to a constant."""
+        click = search_session.web_results[rank].click
+        attr = session_params[rank][cls.param_names.attr].value()
+        tau_1 = session_params[rank][cls.param_names.cont_noclick].value()
+        tau_2 = session_params[rank][cls.param_names.cont_click_nonrel].value()
+        tau_3 = session_params[rank][cls.param_names.cont_click_rel].value()
 
-        rel = self._get_param_at_index(self.param_names.attr, CCMAttrEM, param_index).value()
-        return rel
+        def factor(x, y, z):
+            log_prob = 0.0
+            # We use the chain rule for probabilities and drop the first term P(\mathbf{C}_{<r})
+            # right away.
+            #
+            # First, compute the middle part P(C_r, S_r, E_{r+1} | E_r)
+            if not click:
+                if y:
+                    # no click -> no satisfaction
+                    return 0.0
+                log_prob += math.log(1 - attr)
+                if x:
+                    log_prob += math.log(tau_1 if z else (1 - tau_1))
+                elif z:
+                    # no examination at r -> no examination at r+1
+                    return 0.0
+            else:
+                if not x:
+                    return 0.0
+                log_prob += math.log(attr)
+                if not y:
+                    log_prob += math.log(1 - attr)
+                    log_prob += math.log(tau_2 if z else (1 - tau_2))
+                else:
+                    log_prob += math.log(attr)
+                    log_prob += math.log(tau_3 if z else (1 - tau_3))
+            # Then we compute P(\mathbf{C}_{>r} | E_{r+1} = z)
+            if not z:
+                if search_session.get_last_click_rank() >= rank + 1:
+                    # no examination -> no clicks
+                    return 0.0
+            elif rank + 1 < len(search_session.web_results):
+                log_prob += sum(
+                    math.log(p) for p in cls._get_tail_clicks(search_session,
+                                                              rank + 1,
+                                                              session_params)[0])
+            # Finally, we compute P(E_r = 1 | \mathbf{C}_{<r})
+            exam = cls._get_tail_clicks(search_session, 0, session_params)[1][rank]
+            log_prob += math.log(exam if x else (1 - exam))
+            return math.exp(log_prob)
+        return factor
+
+    @classmethod
+    def _get_session_clickafterrank(cls, session_size, session_params):
+        """
+        For each search result in a given search session,
+        calculates the probability of a click on the current result
+        or any result below the current one given examination at the current rank,
+        i.e., P(C_{>=r} = 1 | E_r = 1), where r is the rank of the current search result.
+
+        :param session_size: The size of the observed search session.
+        :param session_params: The current values of parameters for a given search session.
+
+        :returns: The list of P(C_{>=r} = 1 | E_r = 1) for a given search session.
+        """
+        session_clickafterrank = [0] * (session_size + 1)
+
+        for rank in reversed(range(session_size)):
+            attr = session_params[rank][cls.param_names.attr].value()
+            tau_1 = session_params[rank][cls.param_names.cont_noclick].value()
+            car = session_clickafterrank[rank + 1]
+
+            car = attr + (1 - attr) * tau_1 * car
+            session_clickafterrank[rank] = car
+
+        return session_clickafterrank
 
 
 class CCMAttrEM(ParamEM):
@@ -162,78 +234,66 @@ class CCMAttrEM(ParamEM):
     The attractiveness parameter of the CCM model.
     The value of the parameter is inferred using the EM algorithm.
     """
-
-    def __init__(self):
-        self._numerator1 = 1
-        self._denominator1 = 2
-
-        self._numerator2 = 1
-        self._denominator2 = 2
-
-    def value(self):
-        v = (self._numerator1 / (2 * self._denominator1)) + (self._numerator2 / (2 * self._denominator2))
-        return v
-    
     def update(self, search_session, rank, session_params):
         click = search_session.web_results[rank].click
+        last_click_rank = search_session.get_last_click_rank()
 
-        self._denominator1 += 1
-        if click:
-            self._numerator1 += 1
-
-            self._denominator2 += 1
-            if not search_session.click_after_rank(rank):
-                rel = session_params[rank][CCM.param_names.attr].value()
-                tau_click = session_params[rank][CCM.param_names.exam_click].value()
-                click_after = session_params[rank]['click_after']
-
-                denom = 1 - (tau_click  * (1-rel)) * click_after
-                self._numerator2 += rel/denom
-
-        elif not search_session.click_after_rank(rank):
-
-            rel = session_params[rank][CCM.param_names.attr].value()
-            exam = session_params[rank]['exam']
-            click_after = session_params[rank]['click_after']
-
-            num = (1 - exam) * rel
-            denom = 1 - exam * click_after
-            self._numerator1 += num/denom       
-
-
-class CCMExamNoclickEM(ParamEM):
-    
-    def update(self, search_session, rank, session_params):
-        if search_session.web_results[rank].click:
-            return
-
+        # First, compute the denominator:
         self._denominator += 1
+        if click:
+            self._denominator += 1
 
-        if search_session.click_after_rank(rank):
+        # Now, the numerator.
+        #
+        # 1. The attractiveness part (analogy with DBN):
+        if click:
             self._numerator += 1
-        else:
-            tau_no_click = session_params[rank][CCM.param_names.exam_noclick].value()
-            click_after = session_params[rank]['click_after']
-            
-            num = (1 - click_after) * tau_no_click
-            denom = 1 - click_after * tau_no_click
-            self._numerator += num/denom
-        
+        elif rank >= last_click_rank:
+            attr = session_params[rank][CCM.param_names.attr].value()
+            exam = session_params[rank][CCM.param_names.exam].value()
+            car = session_params[rank][CCM.param_names.car].value()
 
-class CCMExamClickEM(ParamEM):
-    
+            self._numerator +=  (1 - exam) * attr / (1 - exam * car)
+        # 2. The satisfaction part (analogy with DBN):
+        if click and rank == last_click_rank:
+            attr = session_params[rank][CCM.param_names.attr].value()
+            tau_2 = session_params[rank][CCM.param_names.cont_click_nonrel].value()
+            tau_3 = session_params[rank][CCM.param_names.cont_click_rel].value()
+            car = session_params[rank + 1][CCM.param_names.car].value() \
+                if rank < len(search_session.web_results) - 1 \
+                else 0
+
+            self._numerator += attr / (1 - (tau_2 * (1 - attr) + tau_3 * attr) * car)
+
+class CCMContNoclickEM(ParamEM):
     def update(self, search_session, rank, session_params):
         if not search_session.web_results[rank].click:
-            return
+            factor = CCM._get_continuation_factor(search_session, rank, session_params)
+            # P(E_r = 1, E_{r+1} = z | C)
+            exam_prob = lambda z: (factor(1, 0, z) + factor(1, 1, z)) / sum(
+                    factor(*p) for p in itertools.product([0, 1], repeat=3))
+            self._numerator += exam_prob(1)
+            self._denominator += sum(exam_prob(x) for x in [0, 1])
 
-        self._denominator += 1
 
-        if search_session.click_after_rank(rank):
-            self._numerator += 1
-        else:
-            tau_click = session_params[rank][CCM.param_names.exam_click].value()
-            click_after = session_params[rank]['click_after']
+class CCMContClickNonrelEM(ParamEM):
+    def update(self, search_session, rank, session_params):
+        if search_session.web_results[rank].click:
+            factor = CCM._get_continuation_factor(search_session, rank, session_params)
+            # P(E_r = 1, S_r = 0, E_{r+1} = z | C)
+            exam_prob = lambda z: factor(1, 0, z) / sum(
+                    factor(*p) for p in itertools.product([0, 1], repeat=3))
+            self._numerator += exam_prob(1)
+            self._denominator += sum(exam_prob(x) for x in [0, 1])
 
-            num = (1 - click_after) * tau_click
-            denom = 1 - click_after * tau_click
-            self._numerator += num/denom
+class CCMContClickRelEM(ParamEM):
+    def update(self, search_session, rank, session_params):
+        if search_session.web_results[rank].click:
+            factor = CCM._get_continuation_factor(search_session, rank, session_params)
+            # P(E_r = 1, S_r = 1, E_{r+1} = z | C)
+            exam_prob = lambda z: factor(1, 1, z) / sum(
+                    factor(*p) for p in itertools.product([0, 1], repeat=3))
+            self._numerator += exam_prob(1)
+            self._denominator += sum(exam_prob(x) for x in [0, 1])
+
+

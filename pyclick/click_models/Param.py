@@ -59,12 +59,14 @@ class ParamMLE(Param):
 class ParamEM(Param):
     """A parameter used in the expectation-maximization inference."""
 
+    PROB_MIN = 0.000001  # probaiblity to use instaed of 0 to protect from the math domain errors
+
     def __init__(self):
         self._numerator = 1
-        self._denominator = 2
+        self._denominator = 5
 
     def value(self):
-        return self._numerator / float(self._denominator)
+        return min(self._numerator / float(self._denominator), 1 - self.PROB_MIN)
 
     @abstractmethod
     def update(self, search_session, rank, session_params):
