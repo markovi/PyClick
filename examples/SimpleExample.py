@@ -59,6 +59,6 @@ if __name__ == "__main__":
     print "-------------------------------"
 
     loglikelihood = LogLikelihood()
-    print "\tlog-likelihood: %f" % loglikelihood.evaluate(click_model, test_queries)
+    print "\tlog-likelihood: %f" % loglikelihood.evaluate(click_model, test_sessions)
     perplexity = Perplexity()
-    print "\tperplexity: %f" % perplexity.evaluate(click_model, test_queries)[0]
+    print "\tperplexity: %f" % perplexity.evaluate(click_model, test_sessions)[0]
