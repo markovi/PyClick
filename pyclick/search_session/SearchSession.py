@@ -17,9 +17,10 @@ class SearchSession(object):
     and a list of corresponding web documents shown on a SERP.
     """
 
-    def __init__(self, query):
+    def __init__(self, query, task_id):
         self.query = query
         self.web_results = []
+        self.task_id = task_id
 
     def get_clicks(self):
         """

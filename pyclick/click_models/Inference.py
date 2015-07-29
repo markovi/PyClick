@@ -62,5 +62,8 @@ class EMInference(Inference):
                     for param_name, param in new_session_params[rank].items():
                         param.update(search_session, rank, current_session_params)
 
+            for param_container in new_click_model.params.itervalues():
+                param_container.apply_each(lambda param: param.finish_iteration())
+
             #TODO: check memory leaks here
             click_model.params = new_click_model.params
