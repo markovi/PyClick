@@ -65,14 +65,22 @@ class ParamContainer(object):
         pass
 
     @abstractmethod
-    def each_param(self, func):
-        """Apply func to each param in this container."""
+    def apply_each(self, func):
+        """
+        Applies the given func to each parameter in this container.
+
+        :param func: The function to apply.
+        """
 
 
 class QueryDocumentParamContainer(ParamContainer):
     """A container of click model parameters that depend on a query-document pair."""
 
-    MAX_PARAMS_PRINT = 100
+    PARAMS_PRINT_MAX = 100
+    """
+    The maximum number of parameters to output in the string representation of the container.
+    Set to -1 to output all parameters.
+    """
 
     def __init__(self, param_class):
         super(QueryDocumentParamContainer, self).__init__(param_class)
@@ -116,7 +124,7 @@ class QueryDocumentParamContainer(ParamContainer):
         param_str = ''
         counter = 0
         for query in self._container:
-            if self.MAX_PARAMS_PRINT >= 0 and counter > self.MAX_PARAMS_PRINT:
+            if counter > self.PARAMS_PRINT_MAX >= 0:
                 break
             param_str += '%s: %r\n' % (query, self._container[query])
             counter += len(self._container[query])
@@ -126,8 +134,8 @@ class QueryDocumentParamContainer(ParamContainer):
         return str(self)
 
     def apply_each(self, func):
-        for d in self._container.itervalues():
-            for param in d.itervalues():
+        for param_dict in self._container.itervalues():
+            for param in param_dict.itervalues():
                 func(param)
 
 
@@ -254,8 +262,8 @@ class RankSquaredParamContainer(ParamContainer):
         return str(self)
 
     def apply_each(self, func):
-        for l in self._container:
-            for param in l:
+        for param_array in self._container:
+            for param in param_array:
                 func(param)
 
 

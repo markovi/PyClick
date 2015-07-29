@@ -3,8 +3,8 @@
 #
 # Full copyright notice can be found in LICENSE.
 #
+from pyclick.click_models.task_centric.TaskCentricSearchSession import TaskCentricSearchSession
 from pyclick.search_session.SearchResult import SearchResult
-from pyclick.search_session.SearchSession import SearchSession
 
 __author__ = 'Ilya Markov, Bart Vredebregt, Nick de Wolf'
 
@@ -45,10 +45,10 @@ class YandexRelPredChallengeParser:
 
             # If the entry has 6 or more elements it is a query
             if len(entry_array) >= 6 and entry_array[2] == "Q":
-                task_id = entry_array[0]
+                task = entry_array[0]
                 query = entry_array[3]
                 results = entry_array[5:]
-                session = SearchSession(query, task_id)
+                session = TaskCentricSearchSession(task, query)
 
                 for result in results:
                     result = SearchResult(result, 0)
@@ -58,7 +58,7 @@ class YandexRelPredChallengeParser:
 
             # If the entry has 4 elements it is a click
             elif len(entry_array) == 4 and entry_array[2] == "C":
-                if entry_array[0] == task_id:
+                if entry_array[0] == task:
                     clicked_result = entry_array[3]
                     if clicked_result in results:
                         index = results.index(clicked_result)

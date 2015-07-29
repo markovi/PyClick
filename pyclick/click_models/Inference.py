@@ -36,7 +36,7 @@ class MLEInference(Inference):
 class EMInference(Inference):
     """The expectation-maximization (EM) approach to parameter inference."""
 
-    ITERATION_NUM = 5
+    ITERATION_NUM = 50
     """Number of iterations of the EM algorithm."""
 
     def __init__(self, iter_num=ITERATION_NUM):
@@ -62,8 +62,4 @@ class EMInference(Inference):
                     for param_name, param in new_session_params[rank].items():
                         param.update(search_session, rank, current_session_params)
 
-            for param_container in new_click_model.params.itervalues():
-                param_container.apply_each(lambda param: param.finish_iteration())
-
-            #TODO: check memory leaks here
             click_model.params = new_click_model.params

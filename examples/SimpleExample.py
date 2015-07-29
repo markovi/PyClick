@@ -51,8 +51,8 @@ if __name__ == "__main__":
     print "Training on %d search sessions (%d unique queries)." % (len(train_sessions), len(train_queries))
     print "-------------------------------"
 
-    click_model.train(search_sessions)
-    #print "\tTrained %s click model:\n%r" % (click_model.__class__.__name__, click_model)
+    click_model.train(train_sessions)
+    print "\tTrained %s click model:\n%r" % (click_model.__class__.__name__, click_model)
 
     print "-------------------------------"
     print "Testing on %d search sessions (%d unique queries)." % (len(test_sessions), len(test_queries))

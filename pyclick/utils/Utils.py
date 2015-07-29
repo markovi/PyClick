@@ -6,7 +6,6 @@
 
 __author__ = 'Ilya Markov'
 
-from collections import Counter
 
 class Utils:
     """
@@ -42,12 +41,3 @@ class Utils:
             if search_session.query in queries:
                 search_sessions_filtered.append(search_session)
         return search_sessions_filtered
-
-    @staticmethod
-    def count_repeated_urls(search_sessions):
-        """Count URLs that appear more than once in the same **user** session (aka task)."""
-        c = Counter()
-        for s in search_sessions:
-            for d in s.web_results:
-                c[(s.task_id, d.id)] += 1
-        return c
