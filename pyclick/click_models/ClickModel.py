@@ -63,12 +63,6 @@ class ClickModel(object):
         return str(self)
 
     @abstractmethod
-    def predict_click_probs(self, search_session):
-        """Uses the trained parameters to predict click probabilities
-        for results in the given search session."""
-        pass
-
-    @abstractmethod
     def get_session_params(self, search_session):
         """Returns click model parameters that describe the given search session.
         In particular, for each result X in the given search session

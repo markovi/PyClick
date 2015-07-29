@@ -45,10 +45,10 @@ class YandexRelPredChallengeParser:
 
             # If the entry has 6 or more elements it is a query
             if len(entry_array) >= 6 and entry_array[2] == "Q":
-                session_id = entry_array[0]
+                task_id = entry_array[0]
                 query = entry_array[3]
                 results = entry_array[5:]
-                session = SearchSession(query)
+                session = SearchSession(query, task_id)
 
                 for result in results:
                     result = SearchResult(result, 0)
@@ -58,7 +58,7 @@ class YandexRelPredChallengeParser:
 
             # If the entry has 4 elements it is a click
             elif len(entry_array) == 4 and entry_array[2] == "C":
-                if entry_array[0] == session_id:
+                if entry_array[0] == task_id:
                     clicked_result = entry_array[3]
                     if clicked_result in results:
                         index = results.index(clicked_result)
