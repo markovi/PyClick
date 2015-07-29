@@ -52,7 +52,7 @@ Currently, the following click models are implemented and can be used for this e
 
 
 ## Implementing a new click model
-1. Inherit from ```click_models.ClickModel```
+1. Inherit from ```pyclick.click_models.ClickModel```
   
         class NewClickModel(ClickModel)
 
@@ -90,8 +90,8 @@ These two versions of DBN need different implementations of the DBN parameters.
 Thus, it makes sense to name parameter classes as follows: <ModelName>Param<InferenceName>.
 To implement a click model parameter, follow this procedure:
 
-* Inherit from ```click_models.Param``` or one of its children.
-For example, there are predefined classes ```click_models.ParamEM```
+* Inherit from ```pyclick.click_models.Param``` or one of its children.
+For example, there are predefined classes ```pyclick.click_models.ParamEM```
 and ```click_models.ParamMLE``` with basic functionality for parameters
 that implement either EM or MLE inference.
 
@@ -113,7 +113,7 @@ can also be derived based on instructions of Chapter 4.
         Click Models for Web Search.
         Morgan & Claypool Publishers, 2015.
         
-7. Implement abstract methods inherited from ```click_models.ClickModel```.
+7. Implement abstract methods inherited from ```pyclick.click_models.ClickModel```.
 
   * ```get_session_params```: TODO
   * ```get_conditional_click_probs```: TODO
@@ -132,4 +132,4 @@ TODO
 
 * The project is partially funded by the grant P2T1P2\_152269 of the Swiss National Science Foundation.
 * Initially inspired by the [clickmodels](https://github.com/varepsilon/clickmodels) project.
-* Contributors: Aleksandr Chuklin, Artem Grotov, Luka Stout, Finde Xumara, Bart Vredebregt, Nick de Wolf.
+* Contributors: Ilya Markov, Aleksandr Chuklin, Artem Grotov, Luka Stout, Finde Xumara, Bart Vredebregt, Nick de Wolf.
