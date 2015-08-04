@@ -8,7 +8,7 @@ from enum import Enum
 from pyclick.click_models.ClickModel import ClickModel
 from pyclick.click_models.Inference import EMInference
 from pyclick.click_models.Param import ParamEM
-from pyclick.click_models.ParamContainer import QueryDocumentParamContainer, RankSquaredParamContainer
+from pyclick.click_models.ParamContainer import QueryDocumentParamContainer, RankPrevClickParamContainer
 
 
 __author__ = 'Ilya Markov'
@@ -36,20 +36,8 @@ class UBM(ClickModel):
 
     def __init__(self, inference=EMInference()):
         self.params = {self.param_names.attr: QueryDocumentParamContainer(UBMAttrEM),
-                       self.param_names.exam: RankSquaredParamContainer.default(UBMExamEM)}
+                       self.param_names.exam: RankPrevClickParamContainer.default(UBMExamEM)}
         self._inference = inference
-
-    def get_session_params(self, search_session):
-        session_params = []
-
-        for rank, result in enumerate(search_session.web_results):
-            attr = self.params[self.param_names.attr].get(search_session.query, result.id)
-            exam = self.params[self.param_names.exam].get(rank, self._get_prev_clicked_rank(search_session, rank))
-
-            param_dict = {self.param_names.attr: attr, self.param_names.exam: exam}
-            session_params.append(param_dict)
-
-        return session_params
 
     def get_conditional_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
@@ -68,7 +56,7 @@ class UBM(ClickModel):
 
         return click_probs
 
-    def predict_click_probs(self, search_session):
+    def get_full_click_probs(self, search_session):
         click_probs = []
 
         for rank, result in enumerate(search_session.web_results):
@@ -104,22 +92,6 @@ class UBM(ClickModel):
         attr = self.params[self.param_names.attr].get(search_session.query, search_session.web_results[rank].id).value()
         exam = self.params[self.param_names.exam].get(rank, rank_prev_click).value()
         return attr * exam
-
-    def _get_prev_clicked_rank(self, search_session, rank):
-        """
-        Given the rank, returns the rank of the previously clicked search result.
-        If none of the above results was clicked,
-        returns M-1, where M is the number of results in a given search session.
-
-        :param search_session: The current search session.
-        :param rank: The rank of a search result.
-
-        :returns: The rank of the previously clicked search result.
-        """
-        prev_clicks = [rank_click for rank_click, click in enumerate(
-                search_session.get_clicks()[:rank]) if click]
-        prev_click_rank = prev_clicks[-1] if len(prev_clicks) else len(search_session.web_results) - 1
-        return prev_click_rank
 
 
 class UBMAttrEM(ParamEM):

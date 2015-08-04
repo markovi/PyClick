@@ -73,7 +73,7 @@ class Perplexity(Evaluation):
         perplexity_at_rank = [0.0] * RANK_MAX
 
         for session in search_sessions:
-            click_probs = click_model.predict_click_probs(session)
+            click_probs = click_model.get_full_click_probs(session)
 
             for rank, click_prob in enumerate(click_probs):
                 if session.web_results[rank].click:
@@ -184,7 +184,7 @@ class CTRPrediction(Evaluation):
             for test, train in zip(test_sets,train_sets):
                 click_model.train(train)
                 pred_clicks, true_clicks = [], []
-                pred_click_prob =  click_model.predict_click_probs(test[0])[0]
+                pred_click_prob =  click_model.get_full_click_probs(test[0])[0]
                 for t in test:
                     true_clicks.append( t.web_results[0].click )
 

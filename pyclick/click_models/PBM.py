@@ -28,20 +28,8 @@ class PBM(ClickModel):
                        self.param_names.exam: RankParamContainer.default(PBMExamEM)}
         self._inference = EMInference()
 
-    def get_session_params(self, search_session):
-        session_params = []
-
-        for rank, result in enumerate(search_session.web_results):
-            attr = self.params[self.param_names.attr].get(search_session.query, result.id)
-            exam = self.params[self.param_names.exam].get(rank)
-
-            param_dict = {self.param_names.attr: attr, self.param_names.exam: exam}
-            session_params.append(param_dict)
-
-        return session_params
-
     def get_conditional_click_probs(self, search_session):
-        click_probs = self.predict_click_probs(search_session)
+        click_probs = self.get_full_click_probs(search_session)
 
         for rank, result in enumerate(search_session.web_results):
             if not result.click:
@@ -49,11 +37,11 @@ class PBM(ClickModel):
 
         return click_probs
 
-    def predict_click_probs(self, search_session):
+    def get_full_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
         click_probs = []
 
-        for rank, session_param in enumerate(session_params):
+        for session_param in session_params:
             attr = session_param[self.param_names.attr].value()
             exam = session_param[self.param_names.exam].value()
 

@@ -62,16 +62,7 @@ class CCM(ClickModel):
         self._inference = EMInference()
 
     def get_session_params(self, search_session):
-        session_params = []
-
-        for rank, result in enumerate(search_session.web_results):
-            attr = self.params[self.param_names.attr].get(search_session.query, result.id)
-            param_dict = {self.param_names.attr: attr}
-            for cont in [self.param_names.cont_noclick,
-                         self.param_names.cont_click_nonrel,
-                         self.param_names.cont_click_rel]:
-                param_dict[cont] = self.params[cont].get()
-            session_params.append(param_dict)
+        session_params = super(CCM, self).get_session_params(search_session)
 
         session_exam = self._get_session_exam(session_params)
         session_clickafterrank = self._get_session_clickafterrank(
@@ -84,7 +75,7 @@ class CCM(ClickModel):
 
         return session_params
 
-    def predict_click_probs(self, search_session):
+    def get_full_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
         click_probs = []
 

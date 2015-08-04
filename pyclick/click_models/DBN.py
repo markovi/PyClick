@@ -55,15 +55,7 @@ class DBN(ClickModel):
         self._inference = EMInference()
 
     def get_session_params(self, search_session):
-        session_params = []
-
-        for rank, result in enumerate(search_session.web_results):
-            attr = self.params[self.param_names.attr].get(search_session.query, result.id)
-            sat = self.params[self.param_names.sat].get(search_session.query, result.id)
-            cont = self.params[self.param_names.cont].get()
-
-            param_dict = {self.param_names.attr: attr, self.param_names.sat: sat, self.param_names.cont: cont}
-            session_params.append(param_dict)
+        session_params = super(DBN, self).get_session_params(search_session)
 
         session_exam = self._get_session_exam(search_session, session_params)
         session_clickafterrank = self._get_session_clickafterrank(search_session, session_params)
@@ -74,7 +66,7 @@ class DBN(ClickModel):
 
         return session_params
 
-    def predict_click_probs(self, search_session):
+    def get_full_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
         click_probs = []
 

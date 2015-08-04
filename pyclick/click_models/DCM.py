@@ -38,19 +38,7 @@ class DCM(ClickModel):
                        self.param_names.cont: RankParamContainer.default(DCMContMLE)}
         self._inference = MLEInference()
 
-    def get_session_params(self, search_session):
-        session_params = []
-
-        for rank, result in enumerate(search_session.web_results):
-            attr = self.params[self.param_names.attr].get(search_session.query, result.id)
-            cont = self.params[self.param_names.cont].get(rank)
-
-            param_dict = {self.param_names.attr: attr, self.param_names.cont: cont}
-            session_params.append(param_dict)
-
-        return session_params
-
-    def predict_click_probs(self, search_session):
+    def get_full_click_probs(self, search_session):
         session_params = self.get_session_params(search_session)
         exam = 1
         click_probs = []

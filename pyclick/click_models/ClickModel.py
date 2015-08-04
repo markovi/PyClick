@@ -23,10 +23,6 @@ class ClickModel(object):
         self.params = {}
         self._inference = None
 
-    def get_param(self, param_name):
-        """Returns a container of parameters with the given name."""
-        return self.params(param_name)
-
     def train(self, search_sessions):
         """Trains the click model using the given list of search sessions."""
         self._inference.infer_params(self, search_sessions)
@@ -62,7 +58,6 @@ class ClickModel(object):
     def __repr__(self):
         return str(self)
 
-    @abstractmethod
     def get_session_params(self, search_session):
         """Returns click model parameters that describe the given search session.
         In particular, for each result X in the given search session
@@ -71,7 +66,18 @@ class ClickModel(object):
         Then the list of these dictionaries is returned,
         where returned_dict_list[i] corresponds to search_session.results[i].
         """
-        pass
+        session_params = []
+
+        for rank, result in enumerate(search_session.web_results):
+            param_dict = {}
+
+            for param_name, param_container in self.params.items():
+                param = param_container.get_for_session_at_rank(search_session, rank)
+                param_dict[param_name] = param
+
+            session_params.append(param_dict)
+
+        return session_params
 
     @abstractmethod
     def get_conditional_click_probs(self, search_session):
@@ -84,9 +90,9 @@ class ClickModel(object):
         pass
 
     @abstractmethod
-    def predict_click_probs(self, search_session):
+    def get_full_click_probs(self, search_session):
         """
-        Returns a list of predicted probabilities of click P(C = 1) for all results in the given search session.
+        Returns a list of full click probabilities P(C = 1) for all results in the given search session.
         """
         pass
 

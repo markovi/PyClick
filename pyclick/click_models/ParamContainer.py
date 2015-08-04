@@ -65,6 +65,16 @@ class ParamContainer(object):
         pass
 
     @abstractmethod
+    def get_for_session_at_rank(self, search_session, rank):
+        """
+        Returns a click model parameter that corresponds to the search result
+        in a given session at a given rank.
+
+        :returns: A click model parameter that corresponds to the specified search result.
+        """
+        pass
+
+    @abstractmethod
     def apply_each(self, func):
         """
         Applies the given func to each parameter in this container.
@@ -112,6 +122,11 @@ class QueryDocumentParamContainer(ParamContainer):
         if query not in self._container:
             self._container[query] = {}
         self._container[query][search_result] = param
+
+    def get_for_session_at_rank(self, search_session, rank):
+        query = search_session.query
+        result = search_session.web_results[rank].id
+        return self.get(query, result)
 
     def from_json(self, json_str):
         json_container = json.loads(json_str)
@@ -181,6 +196,9 @@ class RankParamContainer(ParamContainer):
         """
         self._container[rank] = param
 
+    def get_for_session_at_rank(self, search_session, rank):
+        return self.get(rank)
+
     def from_json(self, json_str):
         json_container = json.loads(json_str)
         for rank, param in enumerate(self._container):
@@ -197,63 +215,64 @@ class RankParamContainer(ParamContainer):
             func(param)
 
 
-class RankSquaredParamContainer(ParamContainer):
+class RankPrevClickParamContainer(ParamContainer):
     """
-    A container of click model parameters that are double-dependent on rank.
-    For example, examination probability in the UBM model
-    depends on the rank of the current document and the rank of the previously clicked document.
+    A container of click model parameters that depend on rank
+    and on the rank of the previously clicked result (see, e.g., UBM).
     """
 
     MAX_RANK_DEFAULT = 10
     """The default maximum rank."""
 
-    def __init__(self, param_class, max_rank1, max_rank2):
+    def __init__(self, param_class, max_rank):
         """
         Initializes the container with given maximum ranks.
 
         :param param_class: The class of parameters to be stored in the container.
-        :param max_rank1: The maximum rank on the first dimension.
-        :param max_rank2: The maximum rank on the second dimension.
+        :param max_rank: The maximum rank.
         """
-        super(RankSquaredParamContainer, self).__init__(param_class)
-        self._container = [[self._param_class() for i in range(max_rank1)] for j in range(max_rank2)]
+        super(RankPrevClickParamContainer, self).__init__(param_class)
+        self._container = [[self._param_class() for i in range(max_rank)] for j in range(max_rank)]
 
     @classmethod
     def default(cls, param_class):
         """
-        Creates a container with the default maximum ranks of 10.
+        Creates a container with the default maximum rank of 10.
 
         :param param_class: The class of parameters to be stored in the container.
         """
-        return cls(param_class, cls.MAX_RANK_DEFAULT, cls.MAX_RANK_DEFAULT)
+        return cls(param_class, cls.MAX_RANK_DEFAULT)
 
     def size(self):
         return len(self._container) * len(self._container[0])
 
-    def get(self, rank1, rank2):
+    def get(self, rank, rank_prev_click):
         """
         Returns a click model parameter that corresponds to the given ranks.
 
-        :param rank1: The rank on the first dimension.
-        :param rank2: The rank on the second dimension.
+        :param rank: The rank of a search result.
+        :param rank_prev_click: The rank of the previously clicked search result.
         :returns: A click model parameter that corresponds to the given ranks.
         """
-        return self._container[rank1][rank2]
+        return self._container[rank][rank_prev_click]
 
-    def set(self, param, rank1, rank2):
+    def set(self, param, rank, rank_prev_click):
         """
         Sets the given parameter at the given ranks.
 
-        :param rank1: The rank on the first dimension.
-        :param rank2: The rank on the second dimension.
+        :param rank: The rank of a search result.
+        :param rank_prev_click: The rank of the previously clicked search result.
         """
-        self._container[rank1][rank2] = param
+        self._container[rank][rank_prev_click] = param
+
+    def get_for_session_at_rank(self, search_session, rank):
+        return self.get(rank, self._get_prev_clicked_rank(search_session, rank))
 
     def from_json(self, json_str):
         json_container = json.loads(json_str)
-        for rank1, _ in enumerate(self._container):
-            for rank2, param in enumerate(self._container[rank1]):
-                param.__dict__ = json_container[rank1][rank2]
+        for rank, _ in enumerate(self._container):
+            for rank_prev_click, param in enumerate(self._container[rank]):
+                param.__dict__ = json_container[rank][rank_prev_click]
 
     def __str__(self):
         return '\n'.join([' '.join(['{:8s}'.format(item) for item in row]) for row in self._container])
@@ -265,6 +284,23 @@ class RankSquaredParamContainer(ParamContainer):
         for param_array in self._container:
             for param in param_array:
                 func(param)
+
+    @staticmethod
+    def _get_prev_clicked_rank(search_session, rank):
+        """
+        Given the rank, returns the rank of the previously clicked search result.
+        If none of the above results was clicked,
+        returns M-1, where M is the number of results in a given search session.
+
+        :param search_session: The current search session.
+        :param rank: The rank of a search result.
+
+        :returns: The rank of the previously clicked search result.
+        """
+        prev_clicks = [rank_click for rank_click, click in enumerate(
+                search_session.get_clicks()[:rank]) if click]
+        prev_click_rank = prev_clicks[-1] if len(prev_clicks) else len(search_session.web_results) - 1
+        return prev_click_rank
 
 
 class SingleParamContainer(ParamContainer):
@@ -285,6 +321,9 @@ class SingleParamContainer(ParamContainer):
 
     def set(self, param):
         self._container = param
+
+    def get_for_session_at_rank(self, search_session, rank):
+        return self.get()
 
     def from_json(self, json_str):
         self._container.__dict__ = json.loads(json_str)
