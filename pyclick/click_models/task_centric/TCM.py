@@ -138,7 +138,7 @@ class TCMAttrEM(TCMParamEM):
         if result.click:
             self._numerator += 1
         else:
-            self._numerator += ((1 - exam) * attr * fresh * match /
+            self._numerator += ((1 - exam * fresh * match) * attr /
                                 (1 - exam * attr * fresh * match))
 
         self._denominator += 1
@@ -160,7 +160,7 @@ class TCMExamEM(TCMParamEM):
         if result.click:
             self._numerator += 1
         else:
-            self._numerator += ((1 - attr) * exam * fresh * match /
+            self._numerator += ((1 - attr * fresh * match) * exam /
                                 (1 - exam * attr * fresh * match))
 
         self._denominator += 1
@@ -254,7 +254,6 @@ class TCMFreshEM(TCMParamEM):
             if result.click:
                 self._numerator += 1
             else:
-                self._numerator += ((1 - fresh) * exam * attr * match /
-                                    (1 - exam * attr * fresh * match))
+                self._numerator += (1 - exam * attr * match) * fresh / (1 - exam * attr * fresh * match)
 
             self._denominator += 1
