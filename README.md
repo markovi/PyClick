@@ -26,11 +26,19 @@ Dependencies:
 
 * enum34
 
-
-## Running examples
 It is highly recommended to use the [PyPy](http://pypy.org/) interpreter.
 It speeds up the code 10-100 times.
 
+### Docker
+If you have [Docker](https://www.docker.com/) installed on your machine,
+you can run all Python commands with
+
+```
+./docker-pypy <script> [arguments]
+```
+
+
+## Running examples
 Examples are located in the ```examples``` folder.
 Data samples are in ```examples/data```.
 Examples can be run as follows:
