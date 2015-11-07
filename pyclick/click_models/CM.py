@@ -36,8 +36,8 @@ class CM(ClickModel):
         self._inference = MLEInference()
 
     def get_conditional_click_probs(self, search_session):
-        clicks = [click for click in search_session.get_clicks() if click]
-        first_click_rank = clicks[0] if len(clicks) else len(search_session.web_results)
+        click_ranks = [rank for rank, click in enumerate(search_session.get_clicks()) if click]
+        first_click_rank = click_ranks[0] if len(click_ranks) else len(search_session.web_results)
         click_probs = self.get_full_click_probs(search_session)
 
         for rank, result in enumerate(search_session.web_results):
