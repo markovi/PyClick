@@ -11,6 +11,8 @@ from abc import abstractmethod
 import math
 import collections
 
+import sys
+
 __author__ = 'Luka Stout, Finde Xumara, Ilya Markov'
 
 
@@ -81,7 +83,10 @@ class Perplexity(Evaluation):
                 else:
                     p = 1 - click_prob
 
-                perplexity_at_rank[rank] += math.log(p, 2)
+                if p > 0:
+                    perplexity_at_rank[rank] += math.log(p, 2)
+                else:
+                    print >>sys.stderr, 'Click probability is not positive: %f' % p
 
         perplexity_at_rank = [2 ** (-x / len(search_sessions)) for x in perplexity_at_rank]
         perplexity = sum(perplexity_at_rank) / len(perplexity_at_rank)

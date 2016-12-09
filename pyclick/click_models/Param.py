@@ -21,6 +21,9 @@ class Param(object):
     def __repr__(self):
         return str(self)
 
+    def from_json(self, json_str):
+        self.__dict__ = json_str
+
     @abstractmethod
     def value(self):
         """
@@ -41,6 +44,17 @@ class Param(object):
         """
         pass
 
+    @abstractmethod
+    def __iadd__(self, other):
+        """
+        Concatenates the current parameter and the _other_ parameter.
+        Returns the concatenated parameter.
+
+        :param other: The parameter to concatenate with the current one.
+        :returns: The concatenated parameter.
+        """
+        pass
+
 
 class ParamMLE(Param):
     """A parameter used in the maximum likelihood estimation."""
@@ -56,6 +70,14 @@ class ParamMLE(Param):
     def update(self, search_session, rank):
         pass
 
+    def __iadd__(self, other):
+        assert type(self) == type(other)
+
+        self._numerator += other._numerator - 1
+        self._denominator += other._denominator - 2
+
+        return self
+
 
 class ParamEM(Param):
     """A parameter used in the expectation-maximization inference."""
@@ -65,24 +87,82 @@ class ParamEM(Param):
 
     def __init__(self):
         self._numerator = 1
-        self._denominator = 5
+        self._denominator = 2
 
     def value(self):
         return min(self._numerator / float(self._denominator), 1 - self.PROB_MIN)
 
-    @abstractmethod
     def update(self, search_session, rank, session_params):
         """
         Updates the value of the parameter based on the given search session
         and the values of other parameters.
+
+        :param search_session: The currently observed search session.
+        :param rank: The currently observed rank.
+        :param session_params: The current values of the parameters corresponding to the current search session.
+            These values are calculated on the previous iteration of EM
+            (or the default values are used in case this is the first iteration).
+        """
+        if self._is_update_needed(search_session, rank):
+            self._numerator += self._get_numerator_update(search_session, rank, session_params)
+            self._denominator += self._get_denominator_update(search_session, rank, session_params)
+
+    @classmethod
+    def _get_numerator_update(cls, search_session, rank, session_params):
+        """
+        Calculates and returns the update for the numerator of the parameter.
+
+        :param search_session: The currently observed search session.
+        :param rank: The currently observed rank.
+        :param session_params: The current values of the parameters corresponding to the current search session.
+            These values are calculated on the previous iteration of EM
+            (or the default values are used in case this is the first iteration).
+
+        :returns: The update for the numerator of the parameter.
         """
         pass
+
+    @classmethod
+    def _get_denominator_update(cls, search_session, rank, session_params):
+        """
+        Calculates and returns the update for the denominator of the parameter.
+
+        :param search_session: The currently observed search session.
+        :param rank: The currently observed rank.
+        :param session_params: The current values of the parameters corresponding to the current search session.
+            These values are calculated on the previous iteration of EM
+            (or the default values are used in case this is the first iteration).
+
+        :returns: The update for the denominator of the parameter.
+        """
+        pass
+
+    @classmethod
+    def _is_update_needed(cls, search_session, rank):
+        """
+        Checks whether the parameter should be updated given the observed search session and the current rank.
+        Returns True if the update is needed and False otherwise.
+
+        :param search_session: The currently observed search session.
+        :param rank: The currently observed rank.
+
+        :returns" True if the update is needed and False otherwise.
+        """
+        return True
+
+    def __iadd__(self, other):
+        assert type(self) == type(other)
+
+        self._numerator += other._numerator - 1
+        self._denominator += other._denominator - 2
+
+        return self
 
 
 class ParamStatic(Param):
     """A parameter with a fixed value."""
 
-    def __init__(self, param):
+    def __init__(self, param=0):
         self.param = param
 
     def value(self):
@@ -90,3 +170,10 @@ class ParamStatic(Param):
 
     def update(self, search_session, rank, *args):
         pass
+
+    def __iadd__(self, other):
+        """
+        The value of the static parameter cannot be changed.
+        """
+        assert type(self) == type(other)
+        return self

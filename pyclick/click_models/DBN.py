@@ -48,11 +48,11 @@ class DBN(ClickModel):
     Determines whether a user clicks on the current result or any result below the current one.
     """
 
-    def __init__(self):
+    def __init__(self, inference=EMInference()):
         self.params = {self.param_names.attr: QueryDocumentParamContainer(DBNAttrEM),
                        self.param_names.sat: QueryDocumentParamContainer(DBNSatEM),
                        self.param_names.cont: SingleParamContainer(DBNContEM)}
-        self._inference = EMInference()
+        self._inference = inference
 
     def get_session_params(self, search_session):
         session_params = super(DBN, self).get_session_params(search_session)

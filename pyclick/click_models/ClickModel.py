@@ -49,6 +49,21 @@ class ClickModel(object):
             param_name = self.param_names[json_param_name]
             self.params[param_name].from_json(json_param)
 
+    def __iadd__(self, other):
+        """
+        Concatenates the current click model and the _other_ click model.
+        Returns the concatenated click model.
+
+        :param other: The click model to concatenate with the current one.
+        :returns: The concatenated click model.
+        """
+        assert type(self) == type(other)
+
+        for param in other.params:
+            self.params[param] += other.params[param]
+
+        return self
+
     def __str__(self):
         params_str = ''
         for param_name, param in self.params.items():

@@ -54,12 +54,12 @@ class CCM(ClickModel):
     Determines whether a user clicks on the current result or any result below the current one.
     """
 
-    def __init__(self):
+    def __init__(self, inference=EMInference()):
         self.params = {self.param_names.attr: QueryDocumentParamContainer(CCMAttrEM),
             self.param_names.cont_noclick: SingleParamContainer(CCMContNoclickEM),
             self.param_names.cont_click_nonrel: SingleParamContainer(CCMContClickNonrelEM),
             self.param_names.cont_click_rel: SingleParamContainer(CCMContClickRelEM)}
-        self._inference = EMInference()
+        self._inference = inference
 
     def get_session_params(self, search_session):
         session_params = super(CCM, self).get_session_params(search_session)
@@ -225,26 +225,23 @@ class CCMAttrEM(ParamEM):
     The attractiveness parameter of the CCM model.
     The value of the parameter is inferred using the EM algorithm.
     """
-    def update(self, search_session, rank, session_params):
+    @classmethod
+    def _get_numerator_update(cls, search_session, rank, session_params):
         click = search_session.web_results[rank].click
         last_click_rank = search_session.get_last_click_rank()
 
-        # First, compute the denominator:
-        self._denominator += 1
-        if click:
-            self._denominator += 1
+        numerator_update = 0
 
-        # Now, the numerator.
-        #
         # 1. The attractiveness part (analogy with DBN):
         if click:
-            self._numerator += 1
+            numerator_update += 1
         elif rank >= last_click_rank:
             attr = session_params[rank][CCM.param_names.attr].value()
             exam = session_params[rank][CCM.param_names.exam].value()
             car = session_params[rank][CCM.param_names.car].value()
 
-            self._numerator +=  (1 - exam) * attr / (1 - exam * car)
+            numerator_update += (1 - exam) * attr / (1 - exam * car)
+
         # 2. The satisfaction part (analogy with DBN):
         if click and rank == last_click_rank:
             attr = session_params[rank][CCM.param_names.attr].value()
@@ -254,37 +251,139 @@ class CCMAttrEM(ParamEM):
                 if rank < len(search_session.web_results) - 1 \
                 else 0
 
-            self._numerator += attr / (1 - (tau_2 * (1 - attr) + tau_3 * attr) * car)
+            numerator_update += attr / (1 - (tau_2 * (1 - attr) + tau_3 * attr) * car)
 
-class CCMContNoclickEM(ParamEM):
-    def update(self, search_session, rank, session_params):
-        if not search_session.web_results[rank].click:
-            factor = CCM._get_continuation_factor(search_session, rank, session_params)
-            # P(E_r = 1, E_{r+1} = z | C)
-            exam_prob = lambda z: (factor(1, 0, z) + factor(1, 1, z)) / sum(
-                    factor(*p) for p in itertools.product([0, 1], repeat=3))
-            self._numerator += exam_prob(1)
-            self._denominator += sum(exam_prob(x) for x in [0, 1])
+        return numerator_update
 
+    @classmethod
+    def _get_denominator_update(cls, search_session, rank, session_params):
+        denominator_update = 1
 
-class CCMContClickNonrelEM(ParamEM):
-    def update(self, search_session, rank, session_params):
         if search_session.web_results[rank].click:
-            factor = CCM._get_continuation_factor(search_session, rank, session_params)
-            # P(E_r = 1, S_r = 0, E_{r+1} = z | C)
-            exam_prob = lambda z: factor(1, 0, z) / sum(
-                    factor(*p) for p in itertools.product([0, 1], repeat=3))
-            self._numerator += exam_prob(1)
-            self._denominator += sum(exam_prob(x) for x in [0, 1])
+            denominator_update += 1
 
-class CCMContClickRelEM(ParamEM):
-    def update(self, search_session, rank, session_params):
-        if search_session.web_results[rank].click:
-            factor = CCM._get_continuation_factor(search_session, rank, session_params)
-            # P(E_r = 1, S_r = 1, E_{r+1} = z | C)
-            exam_prob = lambda z: factor(1, 1, z) / sum(
-                    factor(*p) for p in itertools.product([0, 1], repeat=3))
-            self._numerator += exam_prob(1)
-            self._denominator += sum(exam_prob(x) for x in [0, 1])
+        return denominator_update
+
+    # def update(self, search_session, rank, session_params):
+    #     click = search_session.web_results[rank].click
+    #     last_click_rank = search_session.get_last_click_rank()
+    #
+    #     # First, compute the denominator:
+    #     self._denominator += 1
+    #     if click:
+    #         self._denominator += 1
+    #
+    #     # Now, the numerator.
+    #     #
+    #     # 1. The attractiveness part (analogy with DBN):
+    #     if click:
+    #         self._numerator += 1
+    #     elif rank >= last_click_rank:
+    #         attr = session_params[rank][CCM.param_names.attr].value()
+    #         exam = session_params[rank][CCM.param_names.exam].value()
+    #         car = session_params[rank][CCM.param_names.car].value()
+    #
+    #         self._numerator += (1 - exam) * attr / (1 - exam * car)
+    #     # 2. The satisfaction part (analogy with DBN):
+    #     if click and rank == last_click_rank:
+    #         attr = session_params[rank][CCM.param_names.attr].value()
+    #         tau_2 = session_params[rank][CCM.param_names.cont_click_nonrel].value()
+    #         tau_3 = session_params[rank][CCM.param_names.cont_click_rel].value()
+    #         car = session_params[rank + 1][CCM.param_names.car].value() \
+    #             if rank < len(search_session.web_results) - 1 \
+    #             else 0
+    #
+    #         self._numerator += attr / (1 - (tau_2 * (1 - attr) + tau_3 * attr) * car)
 
 
+class CCMContEM(ParamEM):
+    """
+    The abstract continuation parameter of the CCM model.
+    The value of the parameter is inferred using the EM algorithm.
+    """
+    @classmethod
+    def _get_numerator_update(cls, search_session, rank, session_params):
+        return cls._get_exam_prob(search_session, rank, session_params, 1)
+
+    @classmethod
+    def _get_denominator_update(cls, search_session, rank, session_params):
+        return sum(cls._get_exam_prob(search_session, rank, session_params, x) for x in [0, 1])
+
+    @classmethod
+    def _get_exam_prob(cls, search_session, rank, session_params, value):
+        pass
+
+
+class CCMContNoclickEM(CCMContEM):
+    """
+    The continuation parameter in case of no click.
+    """
+    @classmethod
+    def _is_update_needed(cls, search_session, rank):
+        return not search_session.web_results[rank].click
+
+    @classmethod
+    def _get_exam_prob(cls, search_session, rank, session_params, value):
+        factor = CCM._get_continuation_factor(search_session, rank, session_params)
+        # P(E_r = 1, E_{r+1} = z | C)
+        return (factor(1, 0, value) + factor(1, 1, value)) / sum(
+            factor(*p) for p in itertools.product([0, 1], repeat=3))
+
+    # def update(self, search_session, rank, session_params):
+    #     if not search_session.web_results[rank].click:
+    #         factor = CCM._get_continuation_factor(search_session, rank, session_params)
+    #         # P(E_r = 1, E_{r+1} = z | C)
+    #         exam_prob = lambda z: (factor(1, 0, z) + factor(1, 1, z)) / sum(
+    #                 factor(*p) for p in itertools.product([0, 1], repeat=3))
+    #         self._numerator += exam_prob(1)
+    #         self._denominator += sum(exam_prob(x) for x in [0, 1])
+
+
+class CCMContClickNonrelEM(CCMContEM):
+    """
+    The continuation parameter in case of a click on a non-relevant document.
+    """
+    @classmethod
+    def _is_update_needed(cls, search_session, rank):
+        return search_session.web_results[rank].click
+
+    @classmethod
+    def _get_exam_prob(cls, search_session, rank, session_params, value):
+        factor = CCM._get_continuation_factor(search_session, rank, session_params)
+        # P(E_r = 1, S_r = 0, E_{r+1} = z | C)
+        return factor(1, 0, value) / sum(
+            factor(*p) for p in itertools.product([0, 1], repeat=3))
+
+    # def update(self, search_session, rank, session_params):
+    #     if search_session.web_results[rank].click:
+    #         factor = CCM._get_continuation_factor(search_session, rank, session_params)
+    #         # P(E_r = 1, S_r = 0, E_{r+1} = z | C)
+    #         exam_prob = lambda z: factor(1, 0, z) / sum(
+    #                 factor(*p) for p in itertools.product([0, 1], repeat=3))
+    #         self._numerator += exam_prob(1)
+    #         self._denominator += sum(exam_prob(x) for x in [0, 1])
+
+
+class CCMContClickRelEM(CCMContEM):
+    """
+    The continuation parameter in case of a click on a relevant document.
+    """
+    @classmethod
+    def _is_update_needed(cls, search_session, rank):
+        return search_session.web_results[rank].click
+
+    @classmethod
+    def _get_exam_prob(cls, search_session, rank, session_params, value):
+        factor = CCM._get_continuation_factor(search_session, rank, session_params)
+        # P(E_r = 1, S_r = 1, E_{r+1} = z | C)
+        return factor(1, 1, value) / sum(
+            factor(*p) for p in itertools.product([0, 1], repeat=3))
+
+    # def update(self, search_session, rank, session_params):
+    #     if search_session.web_results[rank].click:
+    #         factor = CCM._get_continuation_factor(search_session, rank, session_params)
+    #         # P(E_r = 1, S_r = 1, E_{r+1} = z | C)
+    #         exam_prob = lambda z: factor(1, 1, z) / sum(
+    #                 factor(*p) for p in itertools.product([0, 1], repeat=3))
+    #         self._numerator += exam_prob(1)
+    #         self._denominator += sum(exam_prob(x) for x in [0, 1])
