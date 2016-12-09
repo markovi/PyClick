@@ -5,6 +5,8 @@
 #
 import sys
 
+import time
+
 from pyclick.click_models.Evaluation import LogLikelihood, Perplexity
 from pyclick.click_models.UBM import UBM
 from pyclick.click_models.DBN import DBN
@@ -14,6 +16,8 @@ from pyclick.click_models.CCM import CCM
 from pyclick.click_models.CTR import DCTR, RCTR, GCTR
 from pyclick.click_models.CM import CM
 from pyclick.click_models.PBM import PBM
+from pyclick.click_models.alternative_inference.BBM import BBM
+from pyclick.click_models.alternative_inference.UBMProbit import UBMProbit
 from pyclick.utils.Utils import Utils
 from pyclick.utils.YandexRelPredChallengeParser import YandexRelPredChallengeParser
 
@@ -51,14 +55,24 @@ if __name__ == "__main__":
     print "Training on %d search sessions (%d unique queries)." % (len(train_sessions), len(train_queries))
     print "-------------------------------"
 
+    start = time.time()
     click_model.train(train_sessions)
-    print "\tTrained %s click model:\n%r" % (click_model.__class__.__name__, click_model)
+    end = time.time()
+    print "\tTrained %s click model in %i secs:\n%r" % (click_model.__class__.__name__, end - start, click_model)
 
     print "-------------------------------"
     print "Testing on %d search sessions (%d unique queries)." % (len(test_sessions), len(test_queries))
     print "-------------------------------"
 
     loglikelihood = LogLikelihood()
-    print "\tlog-likelihood: %f" % loglikelihood.evaluate(click_model, test_sessions)
     perplexity = Perplexity()
-    print "\tperplexity: %f" % perplexity.evaluate(click_model, test_sessions)[0]
+
+    start = time.time()
+    ll_value = loglikelihood.evaluate(click_model, test_sessions)
+    end = time.time()
+    print "\tlog-likelihood: %f; time: %i secs" % (ll_value, end - start)
+
+    start = time.time()
+    perp_value = perplexity.evaluate(click_model, test_sessions)[0]
+    end = time.time()
+    print "\tperplexity: %f; time: %i secs" % (perp_value, end - start)
