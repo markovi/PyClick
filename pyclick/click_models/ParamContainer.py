@@ -341,8 +341,8 @@ class RankPrevClickParamContainer(ParamContainer):
         return self._iterator()
 
     def _iterator(self):
-        for rank in xrange(len(self._container)):
-            for rank_prev_click in xrange(len(self._container[0])):
+        for rank in range(len(self._container)):
+            for rank_prev_click in range(len(self._container[0])):
                 yield self._container[rank][rank_prev_click]
 
     @staticmethod

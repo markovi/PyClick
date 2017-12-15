@@ -3,14 +3,13 @@
 #
 # Full copyright notice can be found in LICENSE.
 #
-from __future__ import division
+from __future__ import division, print_function
 from abc import abstractmethod
 #from sklearn.metrics import roc_auc_score
 #from scipy.stats import pearsonr
 #import numpy as np
 import math
 import collections
-
 import sys
 
 __author__ = 'Luka Stout, Finde Xumara, Ilya Markov'
@@ -86,7 +85,7 @@ class Perplexity(Evaluation):
                 if p > 0:
                     perplexity_at_rank[rank] += math.log(p, 2)
                 else:
-                    print >>sys.stderr, 'Click probability is not positive: %f' % p
+                    print('Click probability is not positive: %f' % p, file=sys.stderr)
 
         perplexity_at_rank = [2 ** (-x / len(search_sessions)) for x in perplexity_at_rank]
         perplexity = sum(perplexity_at_rank) / len(perplexity_at_rank)
