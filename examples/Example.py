@@ -16,8 +16,6 @@ from pyclick.click_models.CCM import CCM
 from pyclick.click_models.CTR import DCTR, RCTR, GCTR
 from pyclick.click_models.CM import CM
 from pyclick.click_models.PBM import PBM
-from pyclick.click_models.alternative_inference.BBM import BBM
-from pyclick.click_models.alternative_inference.UBMProbit import UBMProbit
 from pyclick.utils.Utils import Utils
 from pyclick.utils.YandexRelPredChallengeParser import YandexRelPredChallengeParser
 
