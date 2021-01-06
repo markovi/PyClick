@@ -53,7 +53,7 @@ class EMInference(Inference):
 
         orig_click_model = copy.deepcopy(click_model)
 
-        for iteration in xrange(self.iter_num):
+        for iteration in range(self.iter_num):
             new_click_model = copy.deepcopy(orig_click_model)
 
             for search_session in search_sessions:

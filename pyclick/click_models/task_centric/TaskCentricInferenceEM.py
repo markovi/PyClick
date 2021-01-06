@@ -18,7 +18,7 @@ class TaskCentricEMInference(EMInference):
         if search_tasks is None or len(search_tasks) == 0:
             return
 
-        for iteration in xrange(self.iter_num):
+        for iteration in range(self.iter_num):
             new_click_model = click_model.__class__()
 
             for search_task in search_tasks:
